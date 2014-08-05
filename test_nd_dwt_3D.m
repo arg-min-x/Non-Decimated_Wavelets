@@ -2,7 +2,7 @@ clear all;
 close all;
 clc;
 
-x = randn(123,39,27) + 1j*randn(123,39,27);
+x = randn(123,139,27) + 1j*randn(123,139,27);
 
 dwt = nd_dwt_3D({'db8','db3'},size(x));
 
