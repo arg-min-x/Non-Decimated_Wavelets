@@ -41,7 +41,6 @@
 classdef nd_dwt_3D
     properties
         f_dec;          % Decomposition Filters
-        f_rec;          % Reconstruction Filters
         sizes;          % Size of the 3D Image
         f_size;         % Length of the filters
         wname;          % Wavelet used
@@ -61,7 +60,7 @@ classdef nd_dwt_3D
             end
             
             % Get the Filter Coefficients
-            [obj.f_dec,obj.f_rec,obj.f_size] = obj.get_filters(obj.wname);
+            [obj.f_dec,obj.f_size] = obj.get_filters(obj.wname);
             
         end
         
@@ -114,7 +113,7 @@ classdef nd_dwt_3D
     methods (Access = protected,Hidden = true)
         
         % Returns the Filters and 
-        function [f_dec,f_rec,f_size] = get_filters(obj,wname)
+        function [f_dec,f_size] = get_filters(obj,wname)
         % Decomposition Filters
         
             % Get Filters for Spatial Domain
@@ -172,57 +171,6 @@ classdef nd_dwt_3D
             f_dec.HLH = shift.*fftn(f_dec.HLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
             f_dec.LHH = shift.*fftn(f_dec.LHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
             f_dec.HHH = shift.*fftn(f_dec.HHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            
-            % Reconstruction Filters
-            % Get Filters for Spatial Domain
-            [~,~,LO_R,HI_R] = wfilters(wname{1});
-            
-            % Get the 3D Filters by taking outer products
-            rec_LL = LO_R.'*LO_R;
-            rec_LH = LO_R.'*HI_R;
-            rec_HL = HI_R.'*LO_R;
-            rec_HH = HI_R.'*HI_R;
-            
-            % Get Filters For Temporal Dimension
-            [~,~,LO_R,HI_R] = wfilters(wname{2});
-            
-            % Take the Outerproducts for the third dimension
-            for ind = 1:size(dec_LL,1)
-                f_rec.LLL(:,ind,:) = rec_LL(:,ind)*LO_R/sqrt(8);
-                f_rec.HLL(:,ind,:) = rec_HL(:,ind)*LO_R/sqrt(8);
-                f_rec.LHL(:,ind,:) = rec_LH(:,ind)*LO_R/sqrt(8);
-                f_rec.HHL(:,ind,:) = rec_HH(:,ind)*LO_R/sqrt(8);
-                f_rec.LLH(:,ind,:) = rec_LL(:,ind)*HI_R/sqrt(8);
-                f_rec.HLH(:,ind,:) = rec_HL(:,ind)*HI_R/sqrt(8);
-                f_rec.LHH(:,ind,:) = rec_LH(:,ind)*HI_R/sqrt(8);
-                f_rec.HHH(:,ind,:) = rec_HH(:,ind)*HI_R/sqrt(8);
-            end
-            
-            % Add a circularshift to the reconstruction filters by adding
-            % phase to them
-            phase1 = exp(1j*2*pi*(f_size.s/2-1)*linspace(0,1-1/obj.sizes(1),obj.sizes(1)));
-            phase2 = exp(1j*2*pi*(f_size.s/2-1)*linspace(0,1-1/obj.sizes(2),obj.sizes(2)));
-            phase3 = exp(1j*2*pi*(f_size.t/2-1)*linspace(0,1-1/obj.sizes(3),obj.sizes(3)));
-            
-            % 2D Phase
-            shift_t = phase1.'*phase2;
-            
-            % 3D Phase
-            shift = zeros([obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            for ind = 1:size(shift_t,2)
-               shift(:,ind,:) = shift_t(:,ind)*phase3; 
-            end
-            
-            % Take the Fourier Transform of the Kernels for Fast
-            % Convolution
-            f_rec.LLL = shift.*fftn(f_rec.LLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_rec.HLL = shift.*fftn(f_rec.HLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_rec.LHL = shift.*fftn(f_rec.LHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_rec.HHL = shift.*fftn(f_rec.HHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_rec.LLH = shift.*fftn(f_rec.LLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_rec.HLH = shift.*fftn(f_rec.HLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_rec.LHH = shift.*fftn(f_rec.LHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_rec.HHH = shift.*fftn(f_rec.HHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
         end
         
         % Single Level Redundant Wavelet Decomposition
@@ -246,14 +194,14 @@ classdef nd_dwt_3D
         function y = level_1_rec(obj,x_f)
             
             % Reconstruct the 3D array using Fast Convolution
-            y = ifftn(squeeze(x_f(:,:,:,1)).*obj.f_rec.LLL);
-            y = y + ifftn(squeeze(x_f(:,:,:,2)).*obj.f_rec.HLL);
-            y = y + ifftn(squeeze(x_f(:,:,:,3)).*obj.f_rec.LHL);
-            y = y + ifftn(squeeze(x_f(:,:,:,4)).*obj.f_rec.HHL);
-            y = y + ifftn(squeeze(x_f(:,:,:,5)).*obj.f_rec.LLH);
-            y = y + ifftn(squeeze(x_f(:,:,:,6)).*obj.f_rec.HLH);
-            y = y + ifftn(squeeze(x_f(:,:,:,7)).*obj.f_rec.LHH);
-            y = y + ifftn(squeeze(x_f(:,:,:,8)).*obj.f_rec.HHH);
+            y = ifftn(squeeze(x_f(:,:,:,1)).*conj(obj.f_dec.LLL));
+            y = y + ifftn(squeeze(x_f(:,:,:,2)).*conj(obj.f_dec.HLL));
+            y = y + ifftn(squeeze(x_f(:,:,:,3)).*conj(obj.f_dec.LHL));
+            y = y + ifftn(squeeze(x_f(:,:,:,4)).*conj(obj.f_dec.HHL));
+            y = y + ifftn(squeeze(x_f(:,:,:,5)).*conj(obj.f_dec.LLH));
+            y = y + ifftn(squeeze(x_f(:,:,:,6)).*conj(obj.f_dec.HLH));
+            y = y + ifftn(squeeze(x_f(:,:,:,7)).*conj(obj.f_dec.LHH));
+            y = y + ifftn(squeeze(x_f(:,:,:,8)).*conj(obj.f_dec.HHH));
 
         end
     end
