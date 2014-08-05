@@ -11,7 +11,8 @@
 %                        the first element in the string is filter for the 
 %                        spatial domain and the second is the filter for the 
 %                        time domain
-%                       sizes - size of the 3D object [n1,n2,n3]
+%
+%                       sizes - size of the 2D object [n1,n2]
 %
 %   dec:        Multilevel Decomposition
 %               Inputs: x - Image domain signal for decomposition
@@ -39,17 +40,14 @@
 % Last update:  8/4/2014
 %**************************************************************************
 classdef nd_dwt_2D
-    %ND_DWT_2D Summary of this class goes here
-    %   Detailed explanation goes here
-    
     properties
         f_dec;          % Decomposition Filters
-        f_rec;          % Reconstruction Filters
         sizes;          % Size of the 3D Image
         f_size;         % Length of the filters
         wname;          % Wavelet used
     end
     
+    %% Public Methods
     methods
         % Constructor Object
         function obj = nd_dwt_2D(wname,sizes)
@@ -63,38 +61,112 @@ classdef nd_dwt_2D
             end
             
             % Get the Filter Coefficients
-            [obj.f_dec,obj.f_rec,obj.f_size] = obj.get_filters(obj.wname);
+            [obj.f_dec,obj.f_size] = obj.get_filters(obj.wname);
             
         end
         
-        % Returns the Filters and
-        function [f_dec,f_rec,f_size] = get_filters(obj,wname)
+        % Multilevel Undecimated Wavelet Decomposition
+        function y = dec(obj,x,level)
+            % Fourier Transform of Signal
+            x = fftn(x);
             
-            % Get the Decomposition Filters Filters for Spatial Domain
-            [LO_D,HI_D]   = wfilters(wname{1});
+            % Preallocate
+            y = zeros([obj.sizes, 5+3*(level-2)]);
+            
+            % Calculate Mutlilevel Wavelet decomposition
+            for ind = 1:level
+                % First Level
+                if ind ==1
+                    y = level_1_dec(obj,x);
+                % Succssive Levels
+                else
+                    y = cat(3,level_1_dec(obj,fftn(squeeze(y(:,:,1)))), y(:,:,2:end));
+                end
+            end
+                      
+        end
+        
+        % Multilevel Undecimated Wavelet Reconstruction
+        function y = rec(obj,x)
+            
+            % Find the decomposition level
+            level = 1+(size(x,3)-4)/3;
+            
+            % Fourier Transform of Signal
+            x = fft2(x);
+            
+            % Reconstruct from Multiple Levels
+            for ind = 1:level
+                % First Level
+                if ind ==1
+                    y = level_1_rec(obj,x);
+                % Succssive Levels
+                else
+                    y = fftn(y);
+                    y = level_1_rec(obj,cat(3,y,x(:,:,5+(ind-2)*3:7+(ind-2)*3)));
+                end
+            end 
+            
+        end
+    end
+    
+    %% Private Methods
+    methods (Access = protected,Hidden = true)
+        
+        % Returns the Filters and 
+        function [f_dec,f_size] = get_filters(obj,wname)
+        % Decomposition Filters
+        
+            % Get the filters
+            [LO_D,HI_D] = wfilters(wname{1});
             [LO_D2,HI_D2] = wfilters(wname{2});
             
             % Find the filter size
             f_size.s = length(LO_D);
             
             % Get the 2D Filters by taking outer products
-            f_dec.LL = LO_D.'*LO_D2;
-            f_dec.HL = HI_D.'*LO_D2;
-            f_dec.LH = LO_D.'*HI_D2;
-            f_dec.HH = HI_D.'*HI_D2;
-        
+            dec_LL = LO_D.'*LO_D2;
+            dec_HL = HI_D.'*LO_D2;
+            dec_LH = LO_D.'*HI_D2;
+            dec_HH = HI_D.'*HI_D2;
 
-            % Get th Reconstruction FiltersFilters
-            [~,~,LO_R,HI_R] = wfilters(wname{1});
-            [~,~,LO_R2,HI_R2] = wfilters(wname{2});
+            % Add a circularshift of half the filter length to the 
+            % reconstruction filters by adding phase to them
+            phase1 = exp(1j*2*pi*f_size.s/2*linspace(0,1-1/obj.sizes(1),obj.sizes(1)));
+            phase2 = exp(1j*2*pi*f_size.s/2*linspace(0,1-1/obj.sizes(2),obj.sizes(2)));
+
+            % 2D Phase
+            shift = phase1.'*phase2;
             
-            % Get the 3D Filters by taking outer products
-            f_rec.LL = LO_R.'*LO_R2;
-            f_rec.LH = LO_R.'*HI_R2;
-            f_rec.HL = HI_R.'*LO_R2;
-            f_rec.HH = HI_R.'*HI_R2;
+            % Take the Fourier Transform of the Kernels for Fast
+            % Convolution
+            f_dec.LL = 1/sqrt(4)*shift.*fftn(dec_LL,[obj.sizes(1),obj.sizes(2)]);
+            f_dec.HL = 1/sqrt(4)*shift.*fftn(dec_HL,[obj.sizes(1),obj.sizes(2)]);
+            f_dec.LH = 1/sqrt(4)*shift.*fftn(dec_LH,[obj.sizes(1),obj.sizes(2)]);
+            f_dec.HH = 1/sqrt(4)*shift.*fftn(dec_HH,[obj.sizes(1),obj.sizes(2)]);
+        end
+        
+        % Single Level Redundant Wavelet Decomposition
+        function y = level_1_dec(obj,x_f)
+            % Preallocate
+            y = zeros([obj.sizes,4]);
+            
+            % Calculate Wavelet Coefficents Using Fast Convolution
+            y(:,:,1) = ifftn(x_f.*obj.f_dec.LL);
+            y(:,:,2) = ifftn(x_f.*obj.f_dec.HL);
+            y(:,:,3) = ifftn(x_f.*obj.f_dec.LH);
+            y(:,:,4) = ifftn(x_f.*obj.f_dec.HH);
+            
+        end
+        
+        % Single Level Redundant Wavelet Reconstruction
+        function y = level_1_rec(obj,x_f)
+            % Reconstruct the 3D array using Fast Convolution
+            y = ifftn(squeeze(x_f(:,:,1)).*conj(obj.f_dec.LL));
+            y = y + ifftn(squeeze(x_f(:,:,2)).*conj(obj.f_dec.HL));
+            y = y + ifftn(squeeze(x_f(:,:,3)).*conj(obj.f_dec.LH));
+            y = y + ifftn(squeeze(x_f(:,:,4)).*conj(obj.f_dec.HH));
         end
     end
-    
 end
 
