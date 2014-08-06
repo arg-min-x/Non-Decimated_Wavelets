@@ -140,10 +140,10 @@ classdef nd_dwt_2D
             
             % Take the Fourier Transform of the Kernels for Fast
             % Convolution
-            f_dec.LL = 1/sqrt(4)*shift.*fftn(dec_LL,[obj.sizes(1),obj.sizes(2)]);
-            f_dec.HL = 1/sqrt(4)*shift.*fftn(dec_HL,[obj.sizes(1),obj.sizes(2)]);
-            f_dec.LH = 1/sqrt(4)*shift.*fftn(dec_LH,[obj.sizes(1),obj.sizes(2)]);
-            f_dec.HH = 1/sqrt(4)*shift.*fftn(dec_HH,[obj.sizes(1),obj.sizes(2)]);
+            f_dec.LL = 1/2*shift.*fftn(dec_LL,[obj.sizes(1),obj.sizes(2)]);
+            f_dec.HL = 1/2*shift.*fftn(dec_HL,[obj.sizes(1),obj.sizes(2)]);
+            f_dec.LH = 1/2*shift.*fftn(dec_LH,[obj.sizes(1),obj.sizes(2)]);
+            f_dec.HH = 1/2*shift.*fftn(dec_HH,[obj.sizes(1),obj.sizes(2)]);
         end
         
         % Single Level Redundant Wavelet Decomposition

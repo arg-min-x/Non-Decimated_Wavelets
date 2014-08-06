@@ -11,19 +11,19 @@ x_recon = dwt.rec(x_trans);
 
 norm(x_trans(:))
 norm(x(:))
-
+% 
 max(abs(x_recon(:)-x(:)))
-
-
-tic;
-for ind = 1:1000
-    tmp = x.*conj(dwt.f_dec.LLL);
-end
-toc
-
-tic;
-for ind = 1:1000
-    tmp = x.*dwt.f_dec.LLL;
-end
-toc
+% 
+% 
+% tic;
+% for ind = 1:1000
+%     tmp = x.*conj(dwt.f_dec.LLL);
+% end
+% toc
+% 
+% tic;
+% for ind = 1:1000
+%     tmp = x.*dwt.f_dec.LLL;
+% end
+% toc
 

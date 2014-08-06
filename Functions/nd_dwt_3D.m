@@ -145,7 +145,7 @@ classdef nd_dwt_3D
                 f_dec.LHH(:,ind,:) = dec_LH(:,ind)*HI_D/sqrt(8);
                 f_dec.HHH(:,ind,:) = dec_HH(:,ind)*HI_D/sqrt(8);
             end
-            
+
             % Add a circularshift of half the filter length to the 
             % reconstruction filters by adding phase to them
             phase1 = exp(1j*2*pi*f_size.s/2*linspace(0,1-1/obj.sizes(1),obj.sizes(1)));
