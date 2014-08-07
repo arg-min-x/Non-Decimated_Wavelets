@@ -5,8 +5,8 @@ clc;
 level = 1;
 x = double(imread('cameraman.tif')) + 1j*ones(256,256);
 % x = randn(256,256) + 1j*randn(256,256);
-
-nddwt = nd_dwt_2D('db4',size(x));
+wnames = {'db1','db4'};
+nddwt = nd_dwt_2D(wnames,size(x));
 
 x_trans = nddwt.dec(x,level);
 x_recon = nddwt.rec(x_trans);

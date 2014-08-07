@@ -150,35 +150,35 @@ classdef nd_dwt_4D
                 dec_LHH(:,ind,:) = dec_LH(:,ind)*HI_D3;
                 dec_HHH(:,ind,:) = dec_HH(:,ind)*HI_D3;
             end
-            
+
             % Take the Outerproducts for the fourth dimension
-            for ii = 1:size(dec_LL,2)
-                for kk = 1:size(dec_LL,3)
-                    f_dec.LLLL(:,ii,kk,:) = dec_LLL(:,ii,kk)*LO_D4/sqrt(8);
-                    f_dec.HLLL(:,ii,kk,:) = dec_HLL(:,ii,kk)*LO_D4/sqrt(8);
-                    f_dec.LHLL(:,ii,kk,:) = dec_LHL(:,ii,kk)*LO_D4/sqrt(8);
-                    f_dec.HHLL(:,ii,kk,:) = dec_HHL(:,ii,kk)*LO_D4/sqrt(8);
-                    f_dec.LLHL(:,ii,kk,:) = dec_LLH(:,ii,kk)*LO_D4/sqrt(8);
-                    f_dec.HLHL(:,ii,kk,:) = dec_HLH(:,ii,kk)*LO_D4/sqrt(8);
-                    f_dec.LHHL(:,ii,kk,:) = dec_LHH(:,ii,kk)*LO_D4/sqrt(8);
-                    f_dec.HHHL(:,ii,kk,:) = dec_HHH(:,ii,kk)*LO_D4/sqrt(8);
-                    f_dec.LLLH(:,ii,kk,:) = dec_LLL(:,ii,kk)*HI_D4/sqrt(8);
-                    f_dec.HLLH(:,ii,kk,:) = dec_HLL(:,ii,kk)*HI_D4/sqrt(8);
-                    f_dec.LHLH(:,ii,kk,:) = dec_LHL(:,ii,kk)*HI_D4/sqrt(8);
-                    f_dec.HHLH(:,ii,kk,:) = dec_HHL(:,ii,kk)*HI_D4/sqrt(8);
-                    f_dec.LLHH(:,ii,kk,:) = dec_LLH(:,ii,kk)*HI_D4/sqrt(8);
-                    f_dec.HLHH(:,ii,kk,:) = dec_HLH(:,ii,kk)*HI_D4/sqrt(8);
-                    f_dec.LHHH(:,ii,kk,:) = dec_LHH(:,ii,kk)*HI_D4/sqrt(8);
-                    f_dec.HHHH(:,ii,kk,:) = dec_HHH(:,ii,kk)*HI_D4/sqrt(8);
+            for kk = 1:size(dec_LLL,3)
+                for ii = 1:size(dec_LLL,2)
+                    f_dec.LLLL(:,ii,kk,:) = dec_LLL(:,ii,kk)*LO_D4/sqrt(16);
+                    f_dec.HLLL(:,ii,kk,:) = dec_HLL(:,ii,kk)*LO_D4/sqrt(16);
+                    f_dec.LHLL(:,ii,kk,:) = dec_LHL(:,ii,kk)*LO_D4/sqrt(16);
+                    f_dec.HHLL(:,ii,kk,:) = dec_HHL(:,ii,kk)*LO_D4/sqrt(16);
+                    f_dec.LLHL(:,ii,kk,:) = dec_LLH(:,ii,kk)*LO_D4/sqrt(16);
+                    f_dec.HLHL(:,ii,kk,:) = dec_HLH(:,ii,kk)*LO_D4/sqrt(16);
+                    f_dec.LHHL(:,ii,kk,:) = dec_LHH(:,ii,kk)*LO_D4/sqrt(16);
+                    f_dec.HHHL(:,ii,kk,:) = dec_HHH(:,ii,kk)*LO_D4/sqrt(16);
+                    f_dec.LLLH(:,ii,kk,:) = dec_LLL(:,ii,kk)*HI_D4/sqrt(16);
+                    f_dec.HLLH(:,ii,kk,:) = dec_HLL(:,ii,kk)*HI_D4/sqrt(16);
+                    f_dec.LHLH(:,ii,kk,:) = dec_LHL(:,ii,kk)*HI_D4/sqrt(16);
+                    f_dec.HHLH(:,ii,kk,:) = dec_HHL(:,ii,kk)*HI_D4/sqrt(16);
+                    f_dec.LLHH(:,ii,kk,:) = dec_LLH(:,ii,kk)*HI_D4/sqrt(16);
+                    f_dec.HLHH(:,ii,kk,:) = dec_HLH(:,ii,kk)*HI_D4/sqrt(16);
+                    f_dec.LHHH(:,ii,kk,:) = dec_LHH(:,ii,kk)*HI_D4/sqrt(16);
+                    f_dec.HHHH(:,ii,kk,:) = dec_HHH(:,ii,kk)*HI_D4/sqrt(16);
                 end
             end
-            norm(f_dec.LLLL(:))
+
             % Add a circularshift of half the filter length to the 
             % reconstruction filters by adding phase to them
             phase1 = exp(1j*2*pi*f_size.s1/2*linspace(0,1-1/obj.sizes(1),obj.sizes(1)));
             phase2 = exp(1j*2*pi*f_size.s2/2*linspace(0,1-1/obj.sizes(2),obj.sizes(2)));
             phase3 = exp(1j*2*pi*f_size.s3/2*linspace(0,1-1/obj.sizes(3),obj.sizes(3)));
-            phase4 = exp(1j*2*pi*f_size.s4/2*linspace(0,1-1/obj.sizes(3),obj.sizes(4)));
+            phase4 = exp(1j*2*pi*f_size.s4/2*linspace(0,1-1/obj.sizes(4),obj.sizes(4)));
 
             % 2D Phase
             shift_2 = phase1.'*phase2;
