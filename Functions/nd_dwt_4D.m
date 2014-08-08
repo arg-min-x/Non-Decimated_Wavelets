@@ -5,42 +5,39 @@
 %
 %
 %Methods:
-%   ud_dwt3D:   Constructor
+%   ud_dwt_4D:  Constructor
 %               Inputs: wname - Wavelet Filters to Use i.e. db1,db2,etc.
-%                        Either a string 'db1' or a cell {'db4','db1'} where
-%                        the first element in the string is filter for the 
-%                        spatial domain and the second is the filter for the 
-%                        time domain
+%                        Either a string 'db1' or a cell  of length 3 e.g. 
+%                        {'db4','db1','db8} where the first element in 
+%                        the string is filter for the first dimension, the 
+%                        second element the seconde dimension, etc
 %                       sizes - size of the 3D object [n1,n2,n3]
 %
 %   dec:        Multilevel Decomposition
 %               Inputs: x - Image domain signal for decomposition
 %                       levels - Number of decomposition Levels
 %               Outputs: y - Multilevel non-decimated DWT coefficients in a
-%                        4D array where the data is arranged [n1,n2,n3,bands]
-%                        The bands are orginized as follows.  Let "HVT"
+%                        5D array where the data is arranged [n1,n2,n3,n4,bands]
+%                        The bands are orginized as follows.  Let "s1s2s3s4"
 %                        represent the Horizontal, Vertical, and Temporal
 %                        Bands.  The coefficients are ordered as follows,
-%                        "LLL", "HLL", "LHL", "HHL", "LLH", "HLH", "LHH",
-%                        "HHH" where "H" denotes the high frequency filter
-%                        and L represents the low frequency filter.
-%                        Successive levels of decomposition are stacked
-%                        such that the highest "LLL" is in [n1,n2,n3,1]
+%                        "LLLL", "HLLL", "LHLL", "HHLL", "LLHL",...,"HHHH
+%                        where "H" denotes the high frequency filter and "L" 
+%                        represents the low frequency filter. Successive 
+%                        levels of decomposition are stacked such that the 
+%                        highest "LLLL" is in [n1,n2,n3,n4,1]
 %
 %   rec:        Multilevel Reconstruction
-%               Inputs: x - Wavelet coefficients in a 4D array size 
-%                       [bands,n1,n2,n3].
-%               Outputs: y - Reconstructed 3D array.%   
+%               Inputs: x - Wavelet coefficients in a 5D array size 
+%                       [n1,n2,n3,n4,bands].
+%               Outputs: y - Reconstructed 4D array.
 %
 %**************************************************************************
 % The Ohio State University
 % Written by:   Adam Rich 
 % Email:        rich.178@osu.edu
-% Last update:  8/4/2014
+% Last update:  8/8/2014
 %**************************************************************************
-
-% To Do
-% 1 Figure out norm issue
 
 classdef nd_dwt_4D
     %ND_DWT_4D Summary of this class goes here
@@ -122,16 +119,31 @@ classdef nd_dwt_4D
         % Returns the Filters and 
         function [f_dec,f_size] = get_filters(obj,wname)
             % Get Filters for the first domain
-            [LO_D,HI_D]   = wfilters(wname{1});
-            [LO_D2,HI_D2] = wfilters(wname{2});
-            [LO_D3,HI_D3] = wfilters(wname{3});
-            [LO_D4,HI_D4] = wfilters(wname{4});
+            [LO_D,HI_D]   = wave_filters(wname{1});
+            [LO_D2,HI_D2] = wave_filters(wname{2});
+            [LO_D3,HI_D3] = wave_filters(wname{3});
+            [LO_D4,HI_D4] = wave_filters(wname{4});
             
             % Find the filter size
             f_size.s1 = length(LO_D);
             f_size.s2 = length(LO_D2);
             f_size.s3 = length(LO_D3);
             f_size.s4 = length(LO_D4);
+            
+            % Dimension Check
+            if f_size.s1 > obj.sizes(1)
+                error(['First Dimension of Data is shorter than the wavelet'...
+                    ,' filter being used']);
+            elseif f_size.s2 > obj.sizes(2)
+                error(['Second Dimension of Data is shorter than the wavelet'...
+                    ,' filter being used']);
+            elseif f_size.s3 > obj.sizes(3)
+                error(['Third Dimension of Data is shorter than the wavelet'...
+                    ,' filter being used']);
+            elseif f_size.s4 > obj.sizes(4)
+                error(['Fourth Dimension of Data is shorter than the wavelet'...
+                    ,' filter being used']);
+            end
             
             % Get the 2D Filters by taking outer products
             dec_LL = LO_D.'*LO_D2;
@@ -140,6 +152,15 @@ classdef nd_dwt_4D
             dec_HH = HI_D.'*HI_D2;
             
             % Take the Outerproducts for the third dimension
+            dec_LLL = zeros(length(LO_D),length(LO_D2),length(LO_D3));
+            dec_HLL = zeros(length(LO_D),length(LO_D2),length(LO_D3));
+            dec_LHL = zeros(length(LO_D),length(LO_D2),length(LO_D3));
+            dec_HHL = zeros(length(LO_D),length(LO_D2),length(LO_D3));
+            dec_LLH = zeros(length(LO_D),length(LO_D2),length(LO_D3));
+            dec_HLH = zeros(length(LO_D),length(LO_D2),length(LO_D3));
+            dec_LHH = zeros(length(LO_D),length(LO_D2),length(LO_D3));
+            dec_HHH = zeros(length(LO_D),length(LO_D2),length(LO_D3));
+            
             for ind = 1:size(dec_LL,2)
                 dec_LLL(:,ind,:) = dec_LL(:,ind)*LO_D3;
                 dec_HLL(:,ind,:) = dec_HL(:,ind)*LO_D3;

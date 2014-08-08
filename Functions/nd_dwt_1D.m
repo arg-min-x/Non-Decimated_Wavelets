@@ -40,7 +40,7 @@ classdef nd_dwt_1D
     
     properties
         f_dec;          % Decomposition Filters
-        sizes;          % Size of the 3D Image
+        sizes;          % Size of the Signal
         f_size;         % Length of the filters
         wname;          % Wavelet used
     end
@@ -123,21 +123,25 @@ classdef nd_dwt_1D
         % Decomposition Filters
         
             % Get Filters for Spatial Domain
-            [LO_D,HI_D] = wfilters(wname{1});
+            [LO_D,HI_D] = wave_filters(wname{1});
             
             % Find the filter size
             f_size.s1 = length(LO_D);
             
+            % Dimension Check
+            if f_size.s1 > obj.sizes(1)
+                error(['First Dimension of Data is shorter than the wavelet'...
+                    ,' filter being used']);
+            end
+            
             % Add a circularshift of half the filter length to the 
             % reconstruction filters by adding phase to them
-%             shift = exp(1j*2*pi*f_size.s1/2*linspace(0,1-1/obj.sizes,obj.sizes));
-            shift = ones(obj.sizes,1).';
+            shift = exp(1j*2*pi*f_size.s1/2*linspace(0,1-1/obj.sizes,obj.sizes));
             
             % Take the Fourier Transform of the Kernels for Fast
             % Convolution
             f_dec.L = 1/sqrt(2)*(shift.*fft(LO_D,obj.sizes)).';
             f_dec.H = 1/sqrt(2)*(shift.*fft(HI_D,obj.sizes)).';
-            
         end
         
         % Single Level Redundant Wavelet Decomposition

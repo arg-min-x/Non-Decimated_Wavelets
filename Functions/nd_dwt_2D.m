@@ -54,10 +54,17 @@ classdef nd_dwt_2D
             % Set Image size
             obj.sizes = sizes;
             
+            % Check wname input
             if ischar(wname)
                 obj.wname = {wname,wname};
             elseif iscell(wname)
-                obj.wname = wname;
+                if length(wname) ==2
+                    obj.wname = wname;
+                else
+                    error(['You must specify two filter names in a cell array'...
+                            ,'of length 2, or a single string for the same'...
+                            ,' filter to be used in all dimensions']);
+                end
             end
             
             % Get the Filter Coefficients
@@ -118,11 +125,21 @@ classdef nd_dwt_2D
         % Decomposition Filters
         
             % Get the filters
-            [LO_D,HI_D] = wfilters(wname{1});
-            [LO_D2,HI_D2] = wfilters(wname{2});
+            [LO_D,HI_D] = wave_filters(wname{1});
+            [LO_D2,HI_D2] = wave_filters(wname{2});
             
             % Find the filter size
-            f_size.s = length(LO_D);
+            f_size.s1 = length(LO_D);
+            f_size.s2 = length(LO_D2);
+            
+            % Dimension Check
+            if f_size.s1 > obj.sizes(1)
+                error(['First Dimension of Data is shorter than the wavelet'...
+                    ,' filter being used']);
+            elseif f_size.s2 > obj.sizes(2)
+                error(['Second Dimension of Data is shorter than the wavelet'...
+                    ,' filter being used']);
+            end
             
             % Get the 2D Filters by taking outer products
             dec_LL = LO_D.'*LO_D2;
@@ -132,8 +149,8 @@ classdef nd_dwt_2D
 
             % Add a circularshift of half the filter length to the 
             % reconstruction filters by adding phase to them
-            phase1 = exp(1j*2*pi*f_size.s/2*linspace(0,1-1/obj.sizes(1),obj.sizes(1)));
-            phase2 = exp(1j*2*pi*f_size.s/2*linspace(0,1-1/obj.sizes(2),obj.sizes(2)));
+            phase1 = exp(1j*2*pi*f_size.s1/2*linspace(0,1-1/obj.sizes(1),obj.sizes(1)));
+            phase2 = exp(1j*2*pi*f_size.s2/2*linspace(0,1-1/obj.sizes(2),obj.sizes(2)));
 
             % 2D Phase
             shift = phase1.'*phase2;

@@ -54,11 +54,17 @@ classdef nd_dwt_3D
             obj.sizes = sizes;
             
             if ischar(wname)
-                obj.wname = {wname,wname};
+                obj.wname = {wname,wname,wname};
             elseif iscell(wname)
-                obj.wname = wname;
+                if length(wname) ==3
+                    obj.wname = wname;
+                else
+                    error(['You must specify three filter names in a cell array'...
+                            ,'of length 3, or a single string for the same'...
+                            ,' filter to be used in all dimensions']);
+                end
             end
-            
+
             % Get the Filter Coefficients
             [obj.f_dec,obj.f_size] = obj.get_filters(obj.wname);
             
@@ -117,40 +123,50 @@ classdef nd_dwt_3D
         % Decomposition Filters
         
             % Get Filters for Spatial Domain
-            [LO_D,HI_D] = wfilters(wname{1});
+            [LO_D,HI_D] = wave_filters(wname{1});
+            [LO_D2,HI_D2] = wave_filters(wname{2});
+            [LO_D3,HI_D3] = wave_filters(wname{3});
             
             % Find the filter size
-            f_size.s = length(LO_D);
+            f_size.s1 = length(LO_D);
+            f_size.s2 = length(LO_D2);
+            f_size.s3 = length(LO_D3);
+            
+            % Dimension Check
+            if f_size.s1 > obj.sizes(1)
+                error(['First Dimension of Data is shorter than the wavelet'...
+                    ,' filter being used']);
+            elseif f_size.s2 > obj.sizes(2)
+                error(['Second Dimension of Data is shorter than the wavelet'...
+                    ,' filter being used']);
+            elseif f_size.s3 > obj.sizes(3)
+                error(['Third Dimension of Data is shorter than the wavelet'...
+                    ,' filter being used']);
+            end
             
             % Get the 2D Filters by taking outer products
-            dec_LL = LO_D.'*LO_D;
-            dec_HL = HI_D.'*LO_D;
-            dec_LH = LO_D.'*HI_D;
-            dec_HH = HI_D.'*HI_D;
-            
-            % Get Filters For Temporal Dimension
-            [LO_D,HI_D] = wfilters(wname{2});
-            
-            % Find the filter size
-            f_size.t = length(LO_D);
+            dec_LL = LO_D.'*LO_D2;
+            dec_HL = HI_D.'*LO_D2;
+            dec_LH = LO_D.'*HI_D2;
+            dec_HH = HI_D.'*HI_D2;
 
             % Take the Outerproducts for the third dimension
             for ind = 1:size(dec_LL,2)
-                f_dec.LLL(:,ind,:) = dec_LL(:,ind)*LO_D/sqrt(8);
-                f_dec.HLL(:,ind,:) = dec_HL(:,ind)*LO_D/sqrt(8);
-                f_dec.LHL(:,ind,:) = dec_LH(:,ind)*LO_D/sqrt(8);
-                f_dec.HHL(:,ind,:) = dec_HH(:,ind)*LO_D/sqrt(8);
-                f_dec.LLH(:,ind,:) = dec_LL(:,ind)*HI_D/sqrt(8);
-                f_dec.HLH(:,ind,:) = dec_HL(:,ind)*HI_D/sqrt(8);
-                f_dec.LHH(:,ind,:) = dec_LH(:,ind)*HI_D/sqrt(8);
-                f_dec.HHH(:,ind,:) = dec_HH(:,ind)*HI_D/sqrt(8);
+                f_dec.LLL(:,ind,:) = dec_LL(:,ind)*LO_D3/sqrt(8);
+                f_dec.HLL(:,ind,:) = dec_HL(:,ind)*LO_D3/sqrt(8);
+                f_dec.LHL(:,ind,:) = dec_LH(:,ind)*LO_D3/sqrt(8);
+                f_dec.HHL(:,ind,:) = dec_HH(:,ind)*LO_D3/sqrt(8);
+                f_dec.LLH(:,ind,:) = dec_LL(:,ind)*HI_D3/sqrt(8);
+                f_dec.HLH(:,ind,:) = dec_HL(:,ind)*HI_D3/sqrt(8);
+                f_dec.LHH(:,ind,:) = dec_LH(:,ind)*HI_D3/sqrt(8);
+                f_dec.HHH(:,ind,:) = dec_HH(:,ind)*HI_D3/sqrt(8);
             end
 
             % Add a circularshift of half the filter length to the 
             % reconstruction filters by adding phase to them
-            phase1 = exp(1j*2*pi*f_size.s/2*linspace(0,1-1/obj.sizes(1),obj.sizes(1)));
-            phase2 = exp(1j*2*pi*f_size.s/2*linspace(0,1-1/obj.sizes(2),obj.sizes(2)));
-            phase3 = exp(1j*2*pi*f_size.t/2*linspace(0,1-1/obj.sizes(3),obj.sizes(3)));
+            phase1 = exp(1j*2*pi*f_size.s1/2*linspace(0,1-1/obj.sizes(1),obj.sizes(1)));
+            phase2 = exp(1j*2*pi*f_size.s2/2*linspace(0,1-1/obj.sizes(2),obj.sizes(2)));
+            phase3 = exp(1j*2*pi*f_size.s3/2*linspace(0,1-1/obj.sizes(3),obj.sizes(3)));
 
             % 2D Phase
             shift_t = phase1.'*phase2;
