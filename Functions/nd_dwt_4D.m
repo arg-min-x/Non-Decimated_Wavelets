@@ -40,20 +40,18 @@
 %**************************************************************************
 
 classdef nd_dwt_4D
-    %ND_DWT_4D Summary of this class goes here
-    %   Detailed explanation goes here
-    
     properties
         f_dec;          % Decomposition Filters
         f_rec;          % Reconstruction Filters
         sizes;          % Size of the 3D Image
         f_size;         % Length of the filters
         wname;          % Wavelet used
+        pres_l2_norm;   % Binary indicator to preserver l2 norm of coefficients
     end
     
     methods
         % Constructor Object
-        function obj = nd_dwt_4D(wname,sizes)
+        function obj = nd_dwt_4D(wname,sizes,varargin)
             % Set Image size
             obj.sizes = sizes;
             
@@ -61,6 +59,12 @@ classdef nd_dwt_4D
                 obj.wname = {wname,wname,wname,wname};
             elseif iscell(wname)
                 obj.wname = wname;
+            end
+            
+            if isempty(varargin)
+                obj.pres_l2_norm = 0;
+            else
+                obj.pres_l2_norm = varargin{1};
             end
             
             % Get the Filter Coefficients
@@ -103,10 +107,16 @@ classdef nd_dwt_4D
                 % First Level
                 if ind ==1
                     y = level_1_rec(obj,x);
+                    if ~obj.pres_l2_norm
+                        y = y/16;
+                    end
                 % Succssive Levels
                 else
                     y = fftn(y);
                     y = level_1_rec(obj,cat(5,y,x(:,:,:,:,17+(ind-2)*15:31+(ind-2)*15)));
+                    if ~obj.pres_l2_norm
+                        y = y/16;
+                    end
                 end
             end 
             
@@ -175,22 +185,22 @@ classdef nd_dwt_4D
             % Take the Outerproducts for the fourth dimension
             for kk = 1:size(dec_LLL,3)
                 for ii = 1:size(dec_LLL,2)
-                    f_dec.LLLL(:,ii,kk,:) = dec_LLL(:,ii,kk)*LO_D4/sqrt(16);
-                    f_dec.HLLL(:,ii,kk,:) = dec_HLL(:,ii,kk)*LO_D4/sqrt(16);
-                    f_dec.LHLL(:,ii,kk,:) = dec_LHL(:,ii,kk)*LO_D4/sqrt(16);
-                    f_dec.HHLL(:,ii,kk,:) = dec_HHL(:,ii,kk)*LO_D4/sqrt(16);
-                    f_dec.LLHL(:,ii,kk,:) = dec_LLH(:,ii,kk)*LO_D4/sqrt(16);
-                    f_dec.HLHL(:,ii,kk,:) = dec_HLH(:,ii,kk)*LO_D4/sqrt(16);
-                    f_dec.LHHL(:,ii,kk,:) = dec_LHH(:,ii,kk)*LO_D4/sqrt(16);
-                    f_dec.HHHL(:,ii,kk,:) = dec_HHH(:,ii,kk)*LO_D4/sqrt(16);
-                    f_dec.LLLH(:,ii,kk,:) = dec_LLL(:,ii,kk)*HI_D4/sqrt(16);
-                    f_dec.HLLH(:,ii,kk,:) = dec_HLL(:,ii,kk)*HI_D4/sqrt(16);
-                    f_dec.LHLH(:,ii,kk,:) = dec_LHL(:,ii,kk)*HI_D4/sqrt(16);
-                    f_dec.HHLH(:,ii,kk,:) = dec_HHL(:,ii,kk)*HI_D4/sqrt(16);
-                    f_dec.LLHH(:,ii,kk,:) = dec_LLH(:,ii,kk)*HI_D4/sqrt(16);
-                    f_dec.HLHH(:,ii,kk,:) = dec_HLH(:,ii,kk)*HI_D4/sqrt(16);
-                    f_dec.LHHH(:,ii,kk,:) = dec_LHH(:,ii,kk)*HI_D4/sqrt(16);
-                    f_dec.HHHH(:,ii,kk,:) = dec_HHH(:,ii,kk)*HI_D4/sqrt(16);
+                    f_dec.LLLL(:,ii,kk,:) = dec_LLL(:,ii,kk)*LO_D4;
+                    f_dec.HLLL(:,ii,kk,:) = dec_HLL(:,ii,kk)*LO_D4;
+                    f_dec.LHLL(:,ii,kk,:) = dec_LHL(:,ii,kk)*LO_D4;
+                    f_dec.HHLL(:,ii,kk,:) = dec_HHL(:,ii,kk)*LO_D4;
+                    f_dec.LLHL(:,ii,kk,:) = dec_LLH(:,ii,kk)*LO_D4;
+                    f_dec.HLHL(:,ii,kk,:) = dec_HLH(:,ii,kk)*LO_D4;
+                    f_dec.LHHL(:,ii,kk,:) = dec_LHH(:,ii,kk)*LO_D4;
+                    f_dec.HHHL(:,ii,kk,:) = dec_HHH(:,ii,kk)*LO_D4;
+                    f_dec.LLLH(:,ii,kk,:) = dec_LLL(:,ii,kk)*HI_D4;
+                    f_dec.HLLH(:,ii,kk,:) = dec_HLL(:,ii,kk)*HI_D4;
+                    f_dec.LHLH(:,ii,kk,:) = dec_LHL(:,ii,kk)*HI_D4;
+                    f_dec.HHLH(:,ii,kk,:) = dec_HHL(:,ii,kk)*HI_D4;
+                    f_dec.LLHH(:,ii,kk,:) = dec_LLH(:,ii,kk)*HI_D4;
+                    f_dec.HLHH(:,ii,kk,:) = dec_HLH(:,ii,kk)*HI_D4;
+                    f_dec.LHHH(:,ii,kk,:) = dec_LHH(:,ii,kk)*HI_D4;
+                    f_dec.HHHH(:,ii,kk,:) = dec_HHH(:,ii,kk)*HI_D4;
                 end
             end
 
@@ -220,22 +230,27 @@ classdef nd_dwt_4D
             
             % Take the Fourier Transform of the Kernels for Fast
             % Convolution
-            f_dec.LLLL = shift.*fftn(f_dec.LLLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.HLLL = shift.*fftn(f_dec.HLLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.LHLL = shift.*fftn(f_dec.LHLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.HHLL = shift.*fftn(f_dec.HHLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.LLHL = shift.*fftn(f_dec.LLHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.HLHL = shift.*fftn(f_dec.HLHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.LHHL = shift.*fftn(f_dec.LHHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.HHHL = shift.*fftn(f_dec.HHHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.LLLH = shift.*fftn(f_dec.LLLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.HLLH = shift.*fftn(f_dec.HLLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.LHLH = shift.*fftn(f_dec.LHLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.HHLH = shift.*fftn(f_dec.HHLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.LLHH = shift.*fftn(f_dec.LLHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.HLHH = shift.*fftn(f_dec.HLHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.LHHH = shift.*fftn(f_dec.LHHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.HHHH = shift.*fftn(f_dec.HHHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            if obj.pres_l2_norm 
+                scale = 1/sqrt(16);
+            else
+                scale = 1;
+            end
+            f_dec.LLLL = scale*shift.*fftn(f_dec.LLLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec.HLLL = scale*shift.*fftn(f_dec.HLLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec.LHLL = scale*shift.*fftn(f_dec.LHLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec.HHLL = scale*shift.*fftn(f_dec.HHLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec.LLHL = scale*shift.*fftn(f_dec.LLHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec.HLHL = scale*shift.*fftn(f_dec.HLHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec.LHHL = scale*shift.*fftn(f_dec.LHHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec.HHHL = scale*shift.*fftn(f_dec.HHHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec.LLLH = scale*shift.*fftn(f_dec.LLLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec.HLLH = scale*shift.*fftn(f_dec.HLLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec.LHLH = scale*shift.*fftn(f_dec.LHLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec.HHLH = scale*shift.*fftn(f_dec.HHLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec.LLHH = scale*shift.*fftn(f_dec.LLHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec.HLHH = scale*shift.*fftn(f_dec.HLHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec.LHHH = scale*shift.*fftn(f_dec.LHHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec.HHHH = scale*shift.*fftn(f_dec.HHHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
         end
         
         % Single Level Redundant Wavelet Decomposition

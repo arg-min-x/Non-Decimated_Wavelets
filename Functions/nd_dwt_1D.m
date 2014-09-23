@@ -43,11 +43,12 @@ classdef nd_dwt_1D
         sizes;          % Size of the Signal
         f_size;         % Length of the filters
         wname;          % Wavelet used
+        pres_l2_norm;   % Binary indicator to preserver l2 norm of coefficients
     end
     
     methods
         % Constructor Object
-        function obj = nd_dwt_1D(wname,sizes)
+        function obj = nd_dwt_1D(wname,sizes,varargin)
             % Check Inputs
             if ischar(wname)
                 obj.wname = {wname,wname};
@@ -57,6 +58,12 @@ classdef nd_dwt_1D
             
             if length(sizes) ~= 1
                 error('1D array length must be a scalar');
+            end
+            
+            if isempty(varargin)
+                obj.pres_l2_norm = 0;
+            else
+                obj.pres_l2_norm = varargin{1};
             end
             
             % Set Image size
@@ -95,7 +102,7 @@ classdef nd_dwt_1D
         function y = rec(obj,x)
             
             % Find the decomposition level
-            level = ceil(size(x,2)-1)
+            level = ceil(size(x,2)-1);
             
             % Fourier Transform of Signal
             x = fft(x,[],1);
@@ -105,13 +112,18 @@ classdef nd_dwt_1D
                 % First Level
                 if ind ==1
                     y = level_1_rec(obj,x);
+                    if ~obj.pres_l2_norm
+                        y = y/2;
+                    end
                 % Succssive Levels
                 else
                     y = fft(y);
                     y = level_1_rec(obj,cat(2,y,x(:,3+(ind-2))));
+                    if ~obj.pres_l2_norm
+                        y = y/2;
+                    end
                 end
             end 
-            
         end
     end
     
@@ -140,8 +152,14 @@ classdef nd_dwt_1D
             
             % Take the Fourier Transform of the Kernels for Fast
             % Convolution
-            f_dec.L = 1/sqrt(2)*(shift.*fft(LO_D,obj.sizes)).';
-            f_dec.H = 1/sqrt(2)*(shift.*fft(HI_D,obj.sizes)).';
+            if obj.pres_l2_norm 
+                scale = 1/sqrt(2);
+            else
+                scale = 1;
+            end
+            
+            f_dec.L = scale*(shift.*fft(LO_D,obj.sizes)).';
+            f_dec.H = scale*(shift.*fft(HI_D,obj.sizes)).';
         end
         
         % Single Level Redundant Wavelet Decomposition

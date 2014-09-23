@@ -6,7 +6,7 @@ level = 1;
 x = double(imread('cameraman.tif')) + 1j*ones(256,256);
 % x = randn(256,256) + 1j*randn(256,256);
 wnames = {'db1','db1'};
-nddwt = nd_dwt_2D(wnames,size(x));
+nddwt = nd_dwt_2D(wnames,size(x),0);
 
 x_trans = nddwt.dec(x,level);
 x_recon = nddwt.rec(x_trans);

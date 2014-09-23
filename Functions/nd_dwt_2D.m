@@ -45,12 +45,13 @@ classdef nd_dwt_2D
         sizes;          % Size of the 3D Image
         f_size;         % Length of the filters
         wname;          % Wavelet used
+        pres_l2_norm;   % Binary indicator to preserver l2 norm of coefficients
     end
     
     %% Public Methods
     methods
         % Constructor Object
-        function obj = nd_dwt_2D(wname,sizes)
+        function obj = nd_dwt_2D(wname,sizes,varargin)
             % Set Image size
             obj.sizes = sizes;
             
@@ -65,6 +66,12 @@ classdef nd_dwt_2D
                             ,'of length 2, or a single string for the same'...
                             ,' filter to be used in all dimensions']);
                 end
+            end
+            
+            if isempty(varargin)
+                obj.pres_l2_norm = 0;
+            else
+                obj.pres_l2_norm = varargin{1};
             end
             
             % Get the Filter Coefficients
@@ -107,10 +114,16 @@ classdef nd_dwt_2D
                 % First Level
                 if ind ==1
                     y = level_1_rec(obj,x);
+                    if ~obj.pres_l2_norm
+                        y = y/4;
+                    end
                 % Succssive Levels
                 else
                     y = fftn(y);
                     y = level_1_rec(obj,cat(3,y,x(:,:,5+(ind-2)*3:7+(ind-2)*3)));
+                    if ~obj.pres_l2_norm
+                        y = y/4;
+                    end
                 end
             end 
             
@@ -157,10 +170,15 @@ classdef nd_dwt_2D
             
             % Take the Fourier Transform of the Kernels for Fast
             % Convolution
-            f_dec.LL = 1/2*shift.*fftn(dec_LL,[obj.sizes(1),obj.sizes(2)]);
-            f_dec.HL = 1/2*shift.*fftn(dec_HL,[obj.sizes(1),obj.sizes(2)]);
-            f_dec.LH = 1/2*shift.*fftn(dec_LH,[obj.sizes(1),obj.sizes(2)]);
-            f_dec.HH = 1/2*shift.*fftn(dec_HH,[obj.sizes(1),obj.sizes(2)]);
+            if obj.pres_l2_norm 
+                scale = 1/2;
+            else
+                scale = 1;
+            end
+            f_dec.LL = scale*shift.*fftn(dec_LL,[obj.sizes(1),obj.sizes(2)]);
+            f_dec.HL = scale*shift.*fftn(dec_HL,[obj.sizes(1),obj.sizes(2)]);
+            f_dec.LH = scale*shift.*fftn(dec_LH,[obj.sizes(1),obj.sizes(2)]);
+            f_dec.HH = scale*shift.*fftn(dec_HH,[obj.sizes(1),obj.sizes(2)]);
         end
         
         % Single Level Redundant Wavelet Decomposition

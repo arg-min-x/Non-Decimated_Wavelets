@@ -44,12 +44,13 @@ classdef nd_dwt_3D
         sizes;          % Size of the 3D Image
         f_size;         % Length of the filters
         wname;          % Wavelet used
+        pres_l2_norm;   % Binary indicator to preserver l2 norm of coefficients
     end
     
     %% Public Methods
     methods
         % Constructor Object
-        function obj = nd_dwt_3D(wname,sizes)
+        function obj = nd_dwt_3D(wname,sizes,varargin)
             % Set Image size
             obj.sizes = sizes;
             
@@ -63,6 +64,12 @@ classdef nd_dwt_3D
                             ,'of length 3, or a single string for the same'...
                             ,' filter to be used in all dimensions']);
                 end
+            end
+            
+            if isempty(varargin)
+                obj.pres_l2_norm = 0;
+            else
+                obj.pres_l2_norm = varargin{1};
             end
 
             % Get the Filter Coefficients
@@ -105,10 +112,16 @@ classdef nd_dwt_3D
                 % First Level
                 if ind ==1
                     y = level_1_rec(obj,x);
+                    if ~obj.pres_l2_norm
+                        y = y/8;
+                    end
                 % Succssive Levels
                 else
                     y = fftn(y);
                     y = level_1_rec(obj,cat(4,y,x(:,:,:,9+(ind-2)*7:15+(ind-2)*7)));
+                    if ~obj.pres_l2_norm
+                        y = y/8;
+                    end
                 end
             end 
             
@@ -152,14 +165,14 @@ classdef nd_dwt_3D
 
             % Take the Outerproducts for the third dimension
             for ind = 1:size(dec_LL,2)
-                f_dec.LLL(:,ind,:) = dec_LL(:,ind)*LO_D3/sqrt(8);
-                f_dec.HLL(:,ind,:) = dec_HL(:,ind)*LO_D3/sqrt(8);
-                f_dec.LHL(:,ind,:) = dec_LH(:,ind)*LO_D3/sqrt(8);
-                f_dec.HHL(:,ind,:) = dec_HH(:,ind)*LO_D3/sqrt(8);
-                f_dec.LLH(:,ind,:) = dec_LL(:,ind)*HI_D3/sqrt(8);
-                f_dec.HLH(:,ind,:) = dec_HL(:,ind)*HI_D3/sqrt(8);
-                f_dec.LHH(:,ind,:) = dec_LH(:,ind)*HI_D3/sqrt(8);
-                f_dec.HHH(:,ind,:) = dec_HH(:,ind)*HI_D3/sqrt(8);
+                f_dec.LLL(:,ind,:) = dec_LL(:,ind)*LO_D3;
+                f_dec.HLL(:,ind,:) = dec_HL(:,ind)*LO_D3;
+                f_dec.LHL(:,ind,:) = dec_LH(:,ind)*LO_D3;
+                f_dec.HHL(:,ind,:) = dec_HH(:,ind)*LO_D3;
+                f_dec.LLH(:,ind,:) = dec_LL(:,ind)*HI_D3;
+                f_dec.HLH(:,ind,:) = dec_HL(:,ind)*HI_D3;
+                f_dec.LHH(:,ind,:) = dec_LH(:,ind)*HI_D3;
+                f_dec.HHH(:,ind,:) = dec_HH(:,ind)*HI_D3;
             end
 
             % Add a circularshift of half the filter length to the 
@@ -179,14 +192,19 @@ classdef nd_dwt_3D
             
             % Take the Fourier Transform of the Kernels for Fast
             % Convolution
-            f_dec.LLL = shift.*fftn(f_dec.LLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec.HLL = shift.*fftn(f_dec.HLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec.LHL = shift.*fftn(f_dec.LHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec.HHL = shift.*fftn(f_dec.HHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec.LLH = shift.*fftn(f_dec.LLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec.HLH = shift.*fftn(f_dec.HLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec.LHH = shift.*fftn(f_dec.LHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec.HHH = shift.*fftn(f_dec.HHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            if obj.pres_l2_norm 
+                scale = 1/sqrt(8);
+            else
+                scale = 1;
+            end
+            f_dec.LLL = scale*shift.*fftn(f_dec.LLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec.HLL = scale*shift.*fftn(f_dec.HLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec.LHL = scale*shift.*fftn(f_dec.LHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec.HHL = scale*shift.*fftn(f_dec.HHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec.LLH = scale*shift.*fftn(f_dec.LLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec.HLH = scale*shift.*fftn(f_dec.HLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec.LHH = scale*shift.*fftn(f_dec.LHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec.HHH = scale*shift.*fftn(f_dec.HHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
         end
         
         % Single Level Redundant Wavelet Decomposition
