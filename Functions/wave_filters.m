@@ -1,6 +1,20 @@
 function [ low_d, hi_d] = wave_filters( wname)
-%wave_filters Returns the wavelet and scaling filter coefficients for the
-%   desired daubechies wavelet 
+% function [ low_d, hi_d] = wave_filters( wname)
+% wave_filters Returns the wavelet and scaling filter coefficients for the
+%   desired daubechies wavelets
+%
+%   Inputs:  wname - Wavelet Filters to return i.e. db1,db2,etc. Input
+%                   should be a string e.g. 'db1, 'db2', 'db3', etc
+%
+%   Outputs: low_d  - The low pass decomposition filter
+%
+%            high_d - The high pass decomposition filter
+%
+%**************************************************************************
+% The Ohio State University
+% Written by:   Adam Rich 
+% Last update:  2/5/2015
+%**************************************************************************
 
 switch lower(wname)
     case {'db1'}

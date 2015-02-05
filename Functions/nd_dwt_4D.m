@@ -3,7 +3,6 @@
 %   in f_dec and f_rec to reduce computation time when performing Multiple
 %   forward/backward transforms
 %
-%
 %Methods:
 %   ud_dwt_4D:  Constructor
 %               Inputs: wname - Wavelet Filters to Use i.e. db1,db2,etc.
@@ -11,11 +10,18 @@
 %                        {'db4','db1','db8} where the first element in 
 %                        the string is filter for the first dimension, the 
 %                        second element the seconde dimension, etc
+%
 %                       sizes - size of the 3D object [n1,n2,n3]
+%
+%                       preserve_l2_norm - An optional third input.  If set
+%                        TRUE, the l2 norm in the wavelet domain will be
+%                        equal to the l2 norm in the signal domain
 %
 %   dec:        Multilevel Decomposition
 %               Inputs: x - Image domain signal for decomposition
+%
 %                       levels - Number of decomposition Levels
+%
 %               Outputs: y - Multilevel non-decimated DWT coefficients in a
 %                        5D array where the data is arranged [n1,n2,n3,n4,bands]
 %                        The bands are orginized as follows.  Let "s1s2s3s4"
@@ -30,13 +36,13 @@
 %   rec:        Multilevel Reconstruction
 %               Inputs: x - Wavelet coefficients in a 5D array size 
 %                       [n1,n2,n3,n4,bands].
+%
 %               Outputs: y - Reconstructed 4D array.
 %
 %**************************************************************************
 % The Ohio State University
 % Written by:   Adam Rich 
-% Email:        rich.178@osu.edu
-% Last update:  8/8/2014
+% Last update:  2/5/2015
 %**************************************************************************
 
 classdef nd_dwt_4D
@@ -53,7 +59,11 @@ classdef nd_dwt_4D
         % Constructor Object
         function obj = nd_dwt_4D(wname,sizes,varargin)
             % Set Image size
-            obj.sizes = sizes;
+            if length(sizes) ~=4
+                error('The sizes vector must be length 4');
+            else
+                obj.sizes = sizes;
+            end
             
             if ischar(wname)
                 obj.wname = {wname,wname,wname,wname};

@@ -14,31 +14,35 @@
 %
 %                       sizes - size of the 2D object [n1,n2]
 %
+%                       preserve_l2_norm - An optional third input.  If set
+%                        TRUE, the l2 norm in the wavelet domain will be
+%                        equal to the l2 norm in the signal domain
+%
 %   dec:        Multilevel Decomposition
 %               Inputs: x - Image domain signal for decomposition
 %                       levels - Number of decomposition Levels
 %               Outputs: y - Multilevel non-decimated DWT coefficients in a
-%                        4D array where the data is arranged [n1,n2,n3,bands]
+%                        4D array where the data is arranged [n1,n2,bands]
 %                        The bands are orginized as follows.  Let "HVT"
-%                        represent the Horizontal, Vertical, and Temporal
-%                        Bands.  The coefficients are ordered as follows,
-%                        "LLL", "HLL", "LHL", "HHL", "LLH", "HLH", "LHH",
-%                        "HHH" where "H" denotes the high frequency filter
-%                        and L represents the low frequency filter.
-%                        Successive levels of decomposition are stacked
-%                        such that the highest "LLL" is in [n1,n2,n3,1]
+%                        represent the Horizontal, and Vertical Bands.  The
+%                        coefficients are ordered as follows, "LL", "HL", 
+%                        "LH", "HH", where "H" denotes the high frequency 
+%                        filter and L represents the low frequency filter. 
+%                        Successive levels of decomposition are stacked such 
+%                        that the highest "LL" is in [n1,n2,1]
 %
 %   rec:        Multilevel Reconstruction
-%               Inputs: x - Wavelet coefficients in a 4D array size 
-%                       [bands,n1,n2,n3].
-%               Outputs: y - Reconstructed 3D array.%   
+%               Inputs: x - Wavelet coefficients in a 3D array size 
+%                       [n1,n2,bands].
+%
+%               Outputs: y - Reconstructed 2D array.%   
 %
 %**************************************************************************
 % The Ohio State University
 % Written by:   Adam Rich 
-% Email:        rich.178@osu.edu
-% Last update:  8/4/2014
+% Last update:  2/5/2015
 %**************************************************************************
+
 classdef nd_dwt_2D
     properties
         f_dec;          % Decomposition Filters
@@ -53,7 +57,11 @@ classdef nd_dwt_2D
         % Constructor Object
         function obj = nd_dwt_2D(wname,sizes,varargin)
             % Set Image size
-            obj.sizes = sizes;
+            if length(sizes) ~=2
+                error('The sizes vector must be length 2');
+            else
+                obj.sizes = sizes;
+            end
             
             % Check wname input
             if ischar(wname)

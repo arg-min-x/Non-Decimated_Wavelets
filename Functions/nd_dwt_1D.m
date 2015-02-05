@@ -10,11 +10,18 @@
 %                        the first element in the string is filter for the 
 %                        spatial domain and the second is the filter for the 
 %                        time domain
+%
 %                       sizes - length of the 1D signal
+%                           
+%                       preserve_l2_norm - An optional third input.  If set
+%                        TRUE, the l2 norm in the wavelet domain will be
+%                        equal to the l2 norm in the signal domain
 %
 %   dec:        Multilevel Decomposition
 %               Inputs: x - Image domain signal for decomposition
+%
 %                       levels - Number of decomposition Levels
+%
 %               Outputs: y - Multilevel non-decimated DWT coefficients in a
 %                        2D array where the data is arranged [n1,bands]
 %                        The bands are orginized as follows.The coefficients 
@@ -24,16 +31,17 @@
 %                        are stacked such that the highest "L" is in [n1,1]
 %
 %   rec:        Multilevel Reconstruction
-%               Inputs: x - Wavelet coefficients in a 4D array size 
-%                       [n1,n2,n3,bands].
-%               Outputs: y - Reconstructed 3D array.%   
+%               Inputs: x - Wavelet coefficients in a 2D array size 
+%                       [n1,bands].
+%
+%               Outputs: y - Reconstructed 1D array.%   
 %
 %**************************************************************************
 % The Ohio State University
 % Written by:   Adam Rich 
-% Email:        rich.178@osu.edu
-% Last update:  8/4/2014
+% Last update:  2/5/2015
 %**************************************************************************
+
 classdef nd_dwt_1D
     %ND_DWT_1D Summary of this class goes here
     %   Detailed explanation goes here
@@ -164,12 +172,17 @@ classdef nd_dwt_1D
         
         % Single Level Redundant Wavelet Decomposition
         function y = level_1_dec(obj,x_f)
+            
             % Preallocate
             y = zeros([obj.sizes,2]);
             
             % Calculate Wavelet Coefficents Using Fast Convolution
             y(:,1) = ifft(x_f.*obj.f_dec.L);
             y(:,2) = ifft(x_f.*obj.f_dec.H);
+            
+            if isreal(x_f)
+                y = real(y);
+            end
         end
         
         % Single Level Redundant Wavelet Reconstruction
@@ -178,6 +191,10 @@ classdef nd_dwt_1D
             % Reconstruct the 3D array using Fast Convolution
             y = ifft(squeeze(x_f(:,1)).*conj(obj.f_dec.L));
             y = y + ifft(squeeze(x_f(:,2)).*conj(obj.f_dec.H));
+            
+            if isreal(x_f)
+                y = real(y);
+            end
         end
     end
     
