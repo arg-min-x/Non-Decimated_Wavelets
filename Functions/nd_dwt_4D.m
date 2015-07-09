@@ -6,12 +6,12 @@
 %Methods:
 %   ud_dwt_4D:  Constructor
 %               Inputs: wname - Wavelet Filters to Use i.e. db1,db2,etc.
-%                        Either a string 'db1' or a cell  of length 3 e.g. 
-%                        {'db4','db1','db8} where the first element in 
-%                        the string is filter for the first dimension, the 
+%                        Either a string 'db1' or a cell  of length 4 e.g. 
+%                        {'db4','db1','db8,'db3'} where the first element in 
+%                        the cell is filter for the first dimension, the 
 %                        second element the seconde dimension, etc
 %
-%                       sizes - size of the 3D object [n1,n2,n3]
+%                       sizes - size of the 4D object [n1,n2,n3,n4]
 %
 %                       preserve_l2_norm - An optional third input.  If set
 %                        TRUE, the l2 norm in the wavelet domain will be
@@ -25,8 +25,7 @@
 %               Outputs: y - Multilevel non-decimated DWT coefficients in a
 %                        5D array where the data is arranged [n1,n2,n3,n4,bands]
 %                        The bands are orginized as follows.  Let "s1s2s3s4"
-%                        represent the Horizontal, Vertical, and Temporal
-%                        Bands.  The coefficients are ordered as follows,
+%                        represent the Bands.  The coefficients are ordered as follows,
 %                        "LLLL", "HLLL", "LHLL", "HHLL", "LLHL",...,"HHHH
 %                        where "H" denotes the high frequency filter and "L" 
 %                        represents the low frequency filter. Successive 
@@ -42,7 +41,7 @@
 %**************************************************************************
 % The Ohio State University
 % Written by:   Adam Rich 
-% Last update:  2/5/2015
+% Last update:  7/5/2015
 %**************************************************************************
 
 classdef nd_dwt_4D
@@ -84,6 +83,14 @@ classdef nd_dwt_4D
         
         % Multilevel Undecimated Wavelet Decomposition
         function y = dec(obj,x,level)
+            
+            % Check if input is real
+            if isreal(x)
+                x_real = 1;
+            else
+                x_real = 0;
+            end
+            
             % Fourier Transform of Signal
             x = fftn(x);
 
@@ -100,7 +107,11 @@ classdef nd_dwt_4D
                     y = cat(5,level_1_dec(obj,fftn(squeeze(y(:,:,:,:,1)))), y(:,:,:,:,2:end));
                 end
             end
-                      
+                 
+            % Take the real part if the input was real
+            if x_real
+                y = real(y);
+            end
         end
         
         % Multilevel Undecimated Wavelet Reconstruction
@@ -108,6 +119,13 @@ classdef nd_dwt_4D
             
             % Find the decomposition level
             level = 1+(size(x,5)-16)/15;
+            
+            % Check if input is real
+            if isreal(x)
+                x_real = 1;
+            else
+                x_real = 0;
+            end
             
             % Fourier Transform of Signal
             x = fft(fft(fft(fft(x,[],1),[],2),[],3),[],4);
@@ -130,6 +148,10 @@ classdef nd_dwt_4D
                 end
             end 
             
+            % Take the real part if the input was real
+            if x_real
+                y = real(y);
+            end
         end
     end
     

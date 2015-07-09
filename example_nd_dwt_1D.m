@@ -3,7 +3,7 @@ close all;
 
 % Load data and set parameters
 load noisbloc;           % Load a noisy test singal
-level = 2;               % Set the Level of decomposition
+level = 3;               % Set the Level of decomposition
 wname = 'db3';           % Set the wavelet used 
 perserve_l2_norm = true; % Choose wether to preserve the l2 norm or not (optional)    
 

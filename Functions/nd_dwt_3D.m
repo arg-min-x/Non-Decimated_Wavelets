@@ -90,6 +90,14 @@ classdef nd_dwt_3D
         
         % Multilevel Undecimated Wavelet Decomposition
         function y = dec(obj,x,level)
+            
+            % Check if input is real
+            if isreal(x)
+                x_real = 1;
+            else
+                x_real = 0;
+            end
+            
             % Fourier Transform of Signal
             x = fftn(x);
             
@@ -106,11 +114,22 @@ classdef nd_dwt_3D
                     y = cat(4,level_1_dec(obj,fftn(squeeze(y(:,:,:,1)))), y(:,:,:,2:end));
                 end
             end
-                      
+            
+            % Take the real part if the input was real
+            if x_real
+                y = real(y);
+            end        
         end
         
         % Multilevel Undecimated Wavelet Reconstruction
         function y = rec(obj,x)
+            
+            % Check if input is real
+            if isreal(x)
+                x_real = 1;
+            else
+                x_real = 0;
+            end
             
             % Find the decomposition level
             level = ceil(size(x,4)/8);
@@ -134,8 +153,12 @@ classdef nd_dwt_3D
                         y = y/8;
                     end
                 end
-            end 
+            end
             
+            % Take the real part if the input was real
+            if x_real
+                y = real(y);
+            end
         end
     end
     
