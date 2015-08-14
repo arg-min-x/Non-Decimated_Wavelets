@@ -199,14 +199,14 @@ classdef nd_dwt_3D
 
             % Take the Outerproducts for the third dimension
             for ind = 1:size(dec_LL,2)
-                f_dec.LLL(:,ind,:) = dec_LL(:,ind)*LO_D3;
-                f_dec.HLL(:,ind,:) = dec_HL(:,ind)*LO_D3;
-                f_dec.LHL(:,ind,:) = dec_LH(:,ind)*LO_D3;
-                f_dec.HHL(:,ind,:) = dec_HH(:,ind)*LO_D3;
-                f_dec.LLH(:,ind,:) = dec_LL(:,ind)*HI_D3;
-                f_dec.HLH(:,ind,:) = dec_HL(:,ind)*HI_D3;
-                f_dec.LHH(:,ind,:) = dec_LH(:,ind)*HI_D3;
-                f_dec.HHH(:,ind,:) = dec_HH(:,ind)*HI_D3;
+                dec_LLL(:,ind,:) = dec_LL(:,ind)*LO_D3;
+                dec_HLL(:,ind,:) = dec_HL(:,ind)*LO_D3;
+                dec_LHL(:,ind,:) = dec_LH(:,ind)*LO_D3;
+                dec_HHL(:,ind,:) = dec_HH(:,ind)*LO_D3;
+                dec_LLH(:,ind,:) = dec_LL(:,ind)*HI_D3;
+                dec_HLH(:,ind,:) = dec_HL(:,ind)*HI_D3;
+                dec_LHH(:,ind,:) = dec_LH(:,ind)*HI_D3;
+                dec_HHH(:,ind,:) = dec_HH(:,ind)*HI_D3;
             end
 
             % Add a circularshift of half the filter length to the 
@@ -231,14 +231,14 @@ classdef nd_dwt_3D
             else
                 scale = 1;
             end
-            f_dec.LLL = scale*shift.*fftn(f_dec.LLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec.HLL = scale*shift.*fftn(f_dec.HLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec.LHL = scale*shift.*fftn(f_dec.LHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec.HHL = scale*shift.*fftn(f_dec.HHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec.LLH = scale*shift.*fftn(f_dec.LLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec.HLH = scale*shift.*fftn(f_dec.HLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec.LHH = scale*shift.*fftn(f_dec.LHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec.HHH = scale*shift.*fftn(f_dec.HHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec(:,:,:,1) = scale*shift.*fftn(dec_LLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec(:,:,:,2) = scale*shift.*fftn(dec_HLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec(:,:,:,3) = scale*shift.*fftn(dec_LHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec(:,:,:,4) = scale*shift.*fftn(dec_HHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec(:,:,:,5) = scale*shift.*fftn(dec_LLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec(:,:,:,6) = scale*shift.*fftn(dec_HLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec(:,:,:,7) = scale*shift.*fftn(dec_LHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec(:,:,:,8) = scale*shift.*fftn(dec_HHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
         end
         
         % Single Level Redundant Wavelet Decomposition
@@ -247,14 +247,14 @@ classdef nd_dwt_3D
             y = zeros([obj.sizes,8]);
             
             % Calculate Wavelet Coefficents Using Fast Convolution
-            y(:,:,:,1) = ifftn(x_f.*obj.f_dec.LLL);
-            y(:,:,:,2) = ifftn(x_f.*obj.f_dec.HLL);
-            y(:,:,:,3) = ifftn(x_f.*obj.f_dec.LHL);
-            y(:,:,:,4) = ifftn(x_f.*obj.f_dec.HHL);
-            y(:,:,:,5) = ifftn(x_f.*obj.f_dec.LLH);
-            y(:,:,:,6) = ifftn(x_f.*obj.f_dec.HLH);
-            y(:,:,:,7) = ifftn(x_f.*obj.f_dec.LHH);
-            y(:,:,:,8) = ifftn(x_f.*obj.f_dec.HHH);
+            y(:,:,:,1) = ifftn(x_f.*obj.f_dec(:,:,:,1));
+            y(:,:,:,2) = ifftn(x_f.*obj.f_dec(:,:,:,2));
+            y(:,:,:,3) = ifftn(x_f.*obj.f_dec(:,:,:,3));
+            y(:,:,:,4) = ifftn(x_f.*obj.f_dec(:,:,:,4));
+            y(:,:,:,5) = ifftn(x_f.*obj.f_dec(:,:,:,5));
+            y(:,:,:,6) = ifftn(x_f.*obj.f_dec(:,:,:,6));
+            y(:,:,:,7) = ifftn(x_f.*obj.f_dec(:,:,:,7));
+            y(:,:,:,8) = ifftn(x_f.*obj.f_dec(:,:,:,8));
             
         end
         
@@ -262,14 +262,14 @@ classdef nd_dwt_3D
         function y = level_1_rec(obj,x_f)
             
             % Reconstruct the 3D array using Fast Convolution
-            y = ifftn(squeeze(x_f(:,:,:,1)).*conj(obj.f_dec.LLL));
-            y = y + ifftn(squeeze(x_f(:,:,:,2)).*conj(obj.f_dec.HLL));
-            y = y + ifftn(squeeze(x_f(:,:,:,3)).*conj(obj.f_dec.LHL));
-            y = y + ifftn(squeeze(x_f(:,:,:,4)).*conj(obj.f_dec.HHL));
-            y = y + ifftn(squeeze(x_f(:,:,:,5)).*conj(obj.f_dec.LLH));
-            y = y + ifftn(squeeze(x_f(:,:,:,6)).*conj(obj.f_dec.HLH));
-            y = y + ifftn(squeeze(x_f(:,:,:,7)).*conj(obj.f_dec.LHH));
-            y = y + ifftn(squeeze(x_f(:,:,:,8)).*conj(obj.f_dec.HHH));
+            y = ifftn(squeeze(x_f(:,:,:,1)).*conj(obj.f_dec(:,:,:,1)));
+            y = y + ifftn(squeeze(x_f(:,:,:,2)).*conj(obj.f_dec(:,:,:,2)));
+            y = y + ifftn(squeeze(x_f(:,:,:,3)).*conj(obj.f_dec(:,:,:,3)));
+            y = y + ifftn(squeeze(x_f(:,:,:,4)).*conj(obj.f_dec(:,:,:,4)));
+            y = y + ifftn(squeeze(x_f(:,:,:,5)).*conj(obj.f_dec(:,:,:,5)));
+            y = y + ifftn(squeeze(x_f(:,:,:,6)).*conj(obj.f_dec(:,:,:,6)));
+            y = y + ifftn(squeeze(x_f(:,:,:,7)).*conj(obj.f_dec(:,:,:,7)));
+            y = y + ifftn(squeeze(x_f(:,:,:,8)).*conj(obj.f_dec(:,:,:,8)));
 
         end
     end
