@@ -26,4 +26,12 @@ void nd_dwt_dec_1level(double *outR, double *outI, double *imageR, double *image
 void nd_dwt_rec_1level(double *outR, double *outI, double *imageR, double *imageI, double *kernelR, double *kernelI, int num_dims,
                        int *dims);
 
+/* multilevel decomposition */
+void nd_dwt_dec(double *outR, double *outI, double *imageR, double *imageI, double *kernelR, double *kernelI, int num_dims,
+                       int *dims);
+
+/* mulitleve level reconstruction */
+void nd_dwt_rec(double *outR, double *outI, double *imageR, double *imageI, double *kernelR, double *kernelI, int num_dims,
+                       int *dims);
+
 #endif /* defined(__wavelets_3D__nddwt__) */

@@ -96,11 +96,12 @@ void nd_dwt_dec_1level(double *outR, double *outI, double *imageR, double *image
                        double *kernelR, double *kernelI, int num_dims,int *dims){
     /* fftw plan init */
     int int_threads = fftw_init_threads();
-    printf("%d\n",int_threads);
+//    printf("%d\n",int_threads);
     fftw_plan_with_nthreads(8);
     fftw_plan ifftw_plan_in_place,fftw_plan_in_place;
     double numel = 1;
-    int start_ind;
+    
+    /* Make fftw planes */
     fftw_plan_in_place = init_fftw_plan(imageR, imageI, imageR, imageI, dims, num_dims,1);
     ifftw_plan_in_place = init_fftw_plan(outI, outR, outI, outR, dims, num_dims,1);
     
@@ -120,11 +121,11 @@ void nd_dwt_dec_1level(double *outR, double *outI, double *imageR, double *image
         fftw_execute_split_dft(ifftw_plan_in_place, &outI[ind], &outR[ind], &outI[ind], &outR[ind]);
     }
     
-     /* Normalize the DFT */
-     for (int ind = 0; ind<numel*8; ind++) {
-         outR[ind] = outR[ind]/numel;
-         outI[ind] = outI[ind]/numel;
-     }
+//     /* Normalize the DFT */
+//     for (int ind = 0; ind<numel*8; ind++) {
+//         outR[ind] = outR[ind]/numel;
+//         outI[ind] = outI[ind]/numel;
+//     }
     
     /* Destory fftw_plans*/
     fftw_destroy_plan(fftw_plan_in_place);
@@ -136,26 +137,23 @@ void nd_dwt_rec_1level(double *outR, double *outI, double *imageR, double *image
                        double *kernelR, double *kernelI, int num_dims,int *dims){
     /* fftw plan init */
     int int_threads = fftw_init_threads();
-    printf("%d\n",int_threads);
+//    printf("%d\n",int_threads);
     fftw_plan_with_nthreads(8);
     fftw_plan ifftw_plan_in_place,fftw_plan_in_place;
     unsigned int numel = 1;
-    int start_ind;
-    double *tmpR, *tmpI;
     
     /* find the number of elements in the image */
     for (int ind =0; ind<num_dims; ind++) {
         numel *=dims[ind];
     }
-    tmpR = (double *) malloc(sizeof(double)*numel);
-    tmpI = (double *) malloc(sizeof(double)*numel);
     
+    /* Make fftw planes */
     fftw_plan_in_place = init_fftw_plan(imageR, imageI, imageR, imageI, dims, num_dims,(1<<num_dims));
     ifftw_plan_in_place = init_fftw_plan(imageI, imageR, imageI, imageR, dims, num_dims,(1<<num_dims));
     
     /* Take the fft of the input image */
     fftw_execute_split_dft(fftw_plan_in_place, imageR, imageI, imageR, imageI); /* */
-    pointByPoint(imageR, imageI, kernelR, kernelI, imageR, imageI, numel*8,1);
+    pointByPoint(imageR, imageI, kernelR, kernelI, imageR, imageI, numel*(1<<num_dims),1);
     fftw_execute_split_dft(ifftw_plan_in_place, imageI, imageR, imageI, imageR);
     
     /* Loop over each subband. multiply be the kernele and take ifft */
@@ -167,17 +165,15 @@ void nd_dwt_rec_1level(double *outR, double *outI, double *imageR, double *image
         }
     }
     
-     /* Normalize the DFT */
-     for (int ind = 0; ind<numel; ind++) {
-         outR[ind] = outR[ind]/numel/8;
-         outI[ind] = outI[ind]/numel/8;
-     }
+//     /* Normalize the DFT */
+//     for (int ind = 0; ind<numel; ind++) {
+//         outR[ind] = outR[ind]/numel/8;
+//         outI[ind] = outI[ind]/numel/8;
+//     }
     
     /* Destory fftw_plans*/
     fftw_destroy_plan(fftw_plan_in_place);
     fftw_destroy_plan(ifftw_plan_in_place);
-    free(tmpR);
-    free(tmpI);
 }
 
 

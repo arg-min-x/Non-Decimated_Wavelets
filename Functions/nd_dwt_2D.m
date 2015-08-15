@@ -50,6 +50,7 @@ classdef nd_dwt_2D
         f_size;         % Length of the filters
         wname;          % Wavelet used
         pres_l2_norm;   % Binary indicator to preserver l2 norm of coefficients
+		mex;			% use mex
     end
     
     %% Public Methods
@@ -78,8 +79,13 @@ classdef nd_dwt_2D
             
             if isempty(varargin)
                 obj.pres_l2_norm = 0;
+                obj.mex = 0;
+            elseif length(varargin)==1
+                obj.pres_l2_norm = varargin{1};
+                obj.mex = 0;
             else
                 obj.pres_l2_norm = varargin{1};
+                obj.mex = varargin{2};
             end
             
             % Get the Filter Coefficients
@@ -206,10 +212,15 @@ classdef nd_dwt_2D
             else
                 scale = 1;
             end
-            f_dec.LL = scale*shift.*fftn(dec_LL,[obj.sizes(1),obj.sizes(2)]);
-            f_dec.HL = scale*shift.*fftn(dec_HL,[obj.sizes(1),obj.sizes(2)]);
-            f_dec.LH = scale*shift.*fftn(dec_LH,[obj.sizes(1),obj.sizes(2)]);
-            f_dec.HH = scale*shift.*fftn(dec_HH,[obj.sizes(1),obj.sizes(2)]);
+            if obj.mex
+                scale2 = 1/prod(obj.sizes);
+            else
+                scale2 = 1;
+            end
+            f_dec(:,:,1) = scale2*scale*shift.*fftn(dec_LL,[obj.sizes(1),obj.sizes(2)]);
+            f_dec(:,:,2) = scale2*scale*shift.*fftn(dec_HL,[obj.sizes(1),obj.sizes(2)]);
+            f_dec(:,:,3) = scale2*scale*shift.*fftn(dec_LH,[obj.sizes(1),obj.sizes(2)]);
+            f_dec(:,:,4) = scale2*scale*shift.*fftn(dec_HH,[obj.sizes(1),obj.sizes(2)]);
         end
         
         % Single Level Redundant Wavelet Decomposition
