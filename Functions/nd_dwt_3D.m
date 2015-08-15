@@ -52,6 +52,7 @@ classdef nd_dwt_3D
         f_size;         % Length of the filters
         wname;          % Wavelet used
         pres_l2_norm;   % Binary indicator to preserver l2 norm of coefficients
+        mex;
     end
     
     %% Public Methods
@@ -79,8 +80,13 @@ classdef nd_dwt_3D
             
             if isempty(varargin)
                 obj.pres_l2_norm = 0;
+                obj.mex = 0;
+            elseif length(varargin)==1
+                obj.pres_l2_norm = varargin{1};
+                obj.mex = 0;
             else
                 obj.pres_l2_norm = varargin{1};
+                obj.mex = varargin{2};
             end
 
             % Get the Filter Coefficients
@@ -97,7 +103,9 @@ classdef nd_dwt_3D
             else
                 x_real = 0;
             end
-            
+            if obj.mex
+                y = nd_dwt_mex(x,obj.f_dec);
+            else
             % Fourier Transform of Signal
             x = fftn(x);
             
@@ -118,7 +126,8 @@ classdef nd_dwt_3D
             % Take the real part if the input was real
             if x_real
                 y = real(y);
-            end        
+            end  
+            end
         end
         
         % Multilevel Undecimated Wavelet Reconstruction
@@ -231,14 +240,20 @@ classdef nd_dwt_3D
             else
                 scale = 1;
             end
-            f_dec(:,:,:,1) = scale*shift.*fftn(dec_LLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec(:,:,:,2) = scale*shift.*fftn(dec_HLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec(:,:,:,3) = scale*shift.*fftn(dec_LHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec(:,:,:,4) = scale*shift.*fftn(dec_HHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec(:,:,:,5) = scale*shift.*fftn(dec_LLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec(:,:,:,6) = scale*shift.*fftn(dec_HLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec(:,:,:,7) = scale*shift.*fftn(dec_LHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            f_dec(:,:,:,8) = scale*shift.*fftn(dec_HHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            if obj.mex
+                scale2 = 1/prod(obj.sizes);
+            else
+                scale2 = 1;
+            end
+                
+            f_dec(:,:,:,1) = scale2*scale*shift.*fftn(dec_LLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec(:,:,:,2) = scale2*scale*shift.*fftn(dec_HLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec(:,:,:,3) = scale2*scale*shift.*fftn(dec_LHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec(:,:,:,4) = scale2*scale*shift.*fftn(dec_HHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec(:,:,:,5) = scale2*scale*shift.*fftn(dec_LLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec(:,:,:,6) = scale2*scale*shift.*fftn(dec_HLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec(:,:,:,7) = scale2*scale*shift.*fftn(dec_LHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+            f_dec(:,:,:,8) = scale2*scale*shift.*fftn(dec_HHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
         end
         
         % Single Level Redundant Wavelet Decomposition
