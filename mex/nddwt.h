@@ -13,10 +13,10 @@
 #include <fftw3.h>
 
 /* Create a plan for a multidimensional fft */
-fftw_plan init_fftw_plan(double *inR, double *inI, double *outR, double *outI, int *dims, int numDims);
+fftw_plan init_fftw_plan(double *inR, double *inI, double *outR, double *outI, int *dims, int numDims, int howmany_trans);
 
 /* complex multiply a*b = c */
-void pointByPoint(double *aR,double *aI,double *bR,double *bI,double *cR,double *cI, int size);
+void pointByPoint(double *aR,double *aI,double *bR,double *bI,double *cR,double *cI, int size,int conj);
 
 /* single level decomposition */
 void nd_dwt_dec_1level(double *outR, double *outI, double *imageR, double *imageI, double *kernelR, double *kernelI, int num_dims,
