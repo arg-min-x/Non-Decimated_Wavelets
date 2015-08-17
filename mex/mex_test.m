@@ -1,6 +1,6 @@
 clear all;
 %%
-x = randn(128,128,32) + 1j*randn(128,128,32);
+x = randn(131,128,30) + 1j*randn(131,128,30);
 
 nddwt = nd_dwt_3D('db1',size(x),1,0);
 nddwt_mex = nd_dwt_3D('db1',size(x),1,1);

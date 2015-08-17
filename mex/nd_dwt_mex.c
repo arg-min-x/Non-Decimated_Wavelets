@@ -86,13 +86,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     /* Inverse Transform */
     else{
-        if (mxGetNumberOfElements(prhs[1]) != mxGetNumberOfElements(prhs[0]) ) {
-            mexErrMsgIdAndTxt( "MATLAB:FFT2mx:invalidNumInputs",
-                              "FIlter size and image size not consistant");
-        }
-        
         /* Declarations */
-        int num_dims,ind, numel,num_dims_kernel;
+        int num_dims,ind, numel,num_dims_kernel,level;
         const int *dims_mat,*dims_kernel;
         int *dims_c;
         double *imageR, *imageI, *kernelR, *kernelI,*outR,*outI;
@@ -109,6 +104,13 @@ void mexFunction( int nlhs, mxArray *plhs[],
         numel = mxGetNumberOfElements(prhs[0]);
         dims_kernel = mxGetDimensions(prhs[1]);
         num_dims_kernel = mxGetNumberOfDimensions(prhs[1])-1;
+        level = mxGetScalar(prhs[3]);                   /* level of decomposition */
+        
+        /* Input Check */
+        if (mxGetNumberOfElements(prhs[1]) != (mxGetNumberOfElements(prhs[0]) - (level-1)*(mxGetNumberOfElements(prhs[1]) -mxGetNumberOfElements(prhs[1])/(1<<num_dims))) ) {
+            mexErrMsgIdAndTxt( "MATLAB:FFT2mx:invalidNumInputs",
+                              "FIlter size and image size not consistant");
+        }
         
         /* C uses row major array storage, reverse dimension order to use column major*/
         dims_c = (int *) malloc(sizeof(int)*num_dims);
@@ -122,8 +124,14 @@ void mexFunction( int nlhs, mxArray *plhs[],
         outI = (double *) mxGetPi(plhs[0]);
         
         /* Take the Inverse wavelet transform */
-        nd_dwt_rec_1level(outR, outI, imageR, imageI, kernelR, kernelI,num_dims,
-                          dims_c);
+        if (level ==1) {
+            nd_dwt_rec_1level(outR, outI, imageR, imageI, kernelR, kernelI,num_dims,
+                              dims_c);
+        }
+        else {
+            nd_dwt_rec(outR, outI, imageR, imageI, kernelR, kernelI,num_dims,
+                              dims_c,level);
+        }
         
         /* free dims_c*/
         free(dims_c);

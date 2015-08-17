@@ -143,7 +143,7 @@ classdef nd_dwt_3D
             % Find the decomposition level
             level = ceil(size(x,4)/8);
  	    if obj.mex
-		    y = nd_dwt_mex(x,obj.f_dec,1);
+		    y = nd_dwt_mex(x,obj.f_dec,1,level);
 	    else 
             % Fourier Transform of Signal
             x = fft(fft(fft(x,[],1),[],2),[],3);

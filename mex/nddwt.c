@@ -122,18 +122,17 @@ void nd_dwt_dec_1level(double *outR, double *outI, double *imageR, double *image
     /* Loop over each subband. multiply be the kernel */
 //    #pragma omp parallel for
     for (int ind = 0; ind<numel*dims_pow; ind+=numel) {
-        /* point by point multiply and ifft for each subband */
         pointByPoint(imageR, imageI, &kernelR[ind], &kernelI[ind], &outR[ind], &outI[ind], numel,0);
     }
     
     /* Take ifft of the result */
     fftw_execute_split_dft(ifftw_plan_in_place, outI, outR, outI, outR);
     
-     /* Normalize the DFT */
-     for (int ind = 0; ind<numel*8; ind++) {
-         outR[ind] = outR[ind]/numel;
-         outI[ind] = outI[ind]/numel;
-     }
+//     /* Normalize the DFT */
+//     for (int ind = 0; ind<numel*8; ind++) {
+//         outR[ind] = outR[ind]/numel;
+//         outI[ind] = outI[ind]/numel;
+//     }
     
     /* Destory fftw_plans*/
     fftw_destroy_plan(fftw_plan_in_place);
@@ -177,8 +176,8 @@ void nd_dwt_rec_1level(double *outR, double *outI, double *imageR, double *image
     
      /* Normalize the DFT */
      for (int ind = 0; ind<numel; ind++) {
-         outR[ind] = outR[ind]/8/numel;
-         outI[ind] = outI[ind]/8/numel;
+         outR[ind] = outR[ind];
+         outI[ind] = outI[ind];
      }
     
     /* Destory fftw_plans*/
@@ -257,7 +256,7 @@ void nd_dwt_rec(double *outR, double *outI, double *imageR, double *imageI,
         /* reconstruct  next lowest levels */
         nd_dwt_rec_1level(outR, outI, &imageR[level_start*numel], &imageI[level_start*numel], kernelR, kernelI, num_dims,dims);
     }
-    
+
 }
 
 
