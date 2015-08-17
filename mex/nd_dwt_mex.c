@@ -9,9 +9,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
                   int nrhs, const mxArray *prhs[] )
 {
     /* Input Checks*/
-    if (nrhs < 3) {
+    if (nrhs < 4) {
         mexErrMsgIdAndTxt("MATLAB:FFT2mx:invalidNumInputs",
-                          "Three Inputs Required");
+                          "Four Inputs Required");
     }
     if (!mxIsDouble(prhs[0]) || !mxIsDouble(prhs[1])) {
         mexErrMsgIdAndTxt( "MATLAB:FFT2mx:invalidNumInputs",
@@ -31,10 +31,11 @@ void mexFunction( int nlhs, mxArray *plhs[],
         }
 
         /* */
-        int num_dims,ind, numel,num_dims_kernel;
+        int num_dims,ind, numel,num_dims_kernel,level;
         const int *dims_mat,*dims_kernel;
         int *dims_c;
         double *imageR, *imageI, *kernelR, *kernelI,*outR,*outI;
+        int *dims_out;
         
         /* Get pointers to input array */
         imageR =  (double *) mxGetPr(prhs[0]);
@@ -43,29 +44,44 @@ void mexFunction( int nlhs, mxArray *plhs[],
         kernelI = (double *) mxGetPi(prhs[1]);
     
         /* Get input dimesions */
-        num_dims = mxGetNumberOfDimensions(prhs[0]);
-        dims_mat = mxGetDimensions(prhs[0]);
-        numel = mxGetNumberOfElements(prhs[0]);
-        dims_kernel = mxGetDimensions(prhs[1]);
-        num_dims_kernel = mxGetNumberOfDimensions(prhs[1]);
+        num_dims = mxGetNumberOfDimensions(prhs[0]);    /* number of image dimensions */
+        dims_mat = mxGetDimensions(prhs[0]);            /* array of image dimension sizes */
+        numel = mxGetNumberOfElements(prhs[0]);         /* number of elements in the array */
+        dims_kernel = mxGetDimensions(prhs[1]);         /* array of kernel dimension sizes */
+        num_dims_kernel = mxGetNumberOfDimensions(prhs[1]);/* number of kernel dimensions */
+        level = mxGetScalar(prhs[3]);                   /* level of decomposition */
     
         /* C uses row major array storage, reverse dimension order to use column major*/
         dims_c = (int *) malloc(sizeof(int)*num_dims);
         for (ind =0;ind<num_dims;ind++){
             dims_c[ind] = dims_mat[ind];
         }
-    
+        
+        /* set the output dims vector */
+        dims_out = (int *) malloc(sizeof(int)*num_dims_kernel);
+        for (ind =0;ind<num_dims_kernel;ind++){
+            dims_out[ind] = dims_kernel[ind];
+        }
+        dims_out[num_dims_kernel-1] = ((1<<num_dims) + ((1<<num_dims)-1)*(level-1));
+        
         /* Create an output array */
-        plhs[0] = mxCreateNumericArray(num_dims_kernel, dims_kernel, mxDOUBLE_CLASS, mxCOMPLEX);
+        plhs[0] = mxCreateNumericArray(num_dims_kernel, dims_out, mxDOUBLE_CLASS, mxCOMPLEX);
         outR = (double *) mxGetPr(plhs[0]);
         outI = (double *) mxGetPi(plhs[0]);
     
-        /* Take the wavelet transform */
-        nd_dwt_dec_1level(outR, outI, imageR, imageI, kernelR, kernelI,num_dims,
-                          dims_c);
+        if (level==1) {
+            /* Take the wavelet transform */
+            nd_dwt_dec_1level(outR, outI, imageR, imageI, kernelR, kernelI,num_dims,
+                              dims_c);
+        }
+        else{
+            nd_dwt_dec(outR, outI, imageR, imageI, kernelR, kernelI,num_dims,
+                              dims_c,level);
+        }
     
-        /* free dims_c*/
+        /* free memory */
         free(dims_c);
+        free(dims_out);
     }
     
     /* Inverse Transform */

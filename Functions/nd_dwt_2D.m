@@ -103,6 +103,9 @@ classdef nd_dwt_2D
                 x_real = 0;
             end
             
+			if obj.mex
+				y = nd_dwt_mex(x,obj.f_dec,0,level);
+			else
             % Fourier Transform of Signal
             x = fftn(x);
             
@@ -123,7 +126,8 @@ classdef nd_dwt_2D
             % Take the real part if the input was real
             if x_real
                 y = real(y);
-            end        
+            end
+		end        
         end
         
         % Multilevel Undecimated Wavelet Reconstruction
@@ -229,20 +233,20 @@ classdef nd_dwt_2D
             y = zeros([obj.sizes,4]);
             
             % Calculate Wavelet Coefficents Using Fast Convolution
-            y(:,:,1) = ifftn(x_f.*obj.f_dec.LL);
-            y(:,:,2) = ifftn(x_f.*obj.f_dec.HL);
-            y(:,:,3) = ifftn(x_f.*obj.f_dec.LH);
-            y(:,:,4) = ifftn(x_f.*obj.f_dec.HH);
+            y(:,:,1) = ifftn(x_f.*obj.f_dec(:,:,1));
+            y(:,:,2) = ifftn(x_f.*obj.f_dec(:,:,2));
+            y(:,:,3) = ifftn(x_f.*obj.f_dec(:,:,3));
+            y(:,:,4) = ifftn(x_f.*obj.f_dec(:,:,4));
             
         end
         
         % Single Level Redundant Wavelet Reconstruction
         function y = level_1_rec(obj,x_f)
             % Reconstruct the 3D array using Fast Convolution
-            y = ifftn(squeeze(x_f(:,:,1)).*conj(obj.f_dec.LL));
-            y = y + ifftn(squeeze(x_f(:,:,2)).*conj(obj.f_dec.HL));
-            y = y + ifftn(squeeze(x_f(:,:,3)).*conj(obj.f_dec.LH));
-            y = y + ifftn(squeeze(x_f(:,:,4)).*conj(obj.f_dec.HH));
+            y = ifftn(squeeze(x_f(:,:,1)).*conj(obj.f_dec(:,:,1)));
+            y = y + ifftn(squeeze(x_f(:,:,2)).*conj(obj.f_dec(:,:,1)));
+            y = y + ifftn(squeeze(x_f(:,:,3)).*conj(obj.f_dec(:,:,1)));
+            y = y + ifftn(squeeze(x_f(:,:,4)).*conj(obj.f_dec(:,:,1)));
         end
     end
 end

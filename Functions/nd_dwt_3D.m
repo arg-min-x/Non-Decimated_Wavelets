@@ -104,7 +104,7 @@ classdef nd_dwt_3D
                 x_real = 0;
             end
             if obj.mex
-                y = nd_dwt_mex(x,obj.f_dec,0);
+                y = nd_dwt_mex(x,obj.f_dec,0,level);
             else
             % Fourier Transform of Signal
             x = fftn(x);

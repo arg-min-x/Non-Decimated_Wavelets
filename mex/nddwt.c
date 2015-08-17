@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 Adam. All rights reserved.
 //
 
-#include "nddwt.h"
+//#include "nddwt.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <fftw3.h>
@@ -68,8 +68,9 @@ void pointByPoint(double *in1R, double *in1I,double *in2R,double *in2I,double *o
     //    I[(a+ib)(c+id)]	=	(a+b)(c+d)-ac-bd. */
     double ac,bd,a_b,c_d;
     
+    /* normal point by point */
     if (conj ==0) {
-        #pragma omp parallel for private(ac,bd,a_b,c_d)
+//        #pragma omp parallel for private(ac,bd,a_b,c_d)
         for (int ind = 0; ind < size; ind++) {
             ac = in1R[ind]*in2R[ind];
             bd = in1I[ind]*in2I[ind];
@@ -79,8 +80,9 @@ void pointByPoint(double *in1R, double *in1I,double *in2R,double *in2I,double *o
             outI[ind] = a_b*c_d-ac-bd;
         }
     }
+    /* conjugate the secon inpute then point by point */
     else{
-        #pragma omp parallel for private(ac,bd,a_b,c_d)
+//        #pragma omp parallel for private(ac,bd,a_b,c_d)
         for (int ind = 0; ind < size; ind++) {
             ac = in1R[ind]*in2R[ind];
             bd = in1I[ind]*(-in2I[ind]);
@@ -91,6 +93,7 @@ void pointByPoint(double *in1R, double *in1I,double *in2R,double *in2I,double *o
         }
     }
 }
+
 /* =================================================================================================*/
 void nd_dwt_dec_1level(double *outR, double *outI, double *imageR, double *imageI,
                        double *kernelR, double *kernelI, int num_dims,int *dims){
@@ -99,11 +102,14 @@ void nd_dwt_dec_1level(double *outR, double *outI, double *imageR, double *image
 //    printf("%d\n",int_threads);
     fftw_plan_with_nthreads(8);
     fftw_plan ifftw_plan_in_place,fftw_plan_in_place;
-    double numel = 1;
+    double numel, dims_pow;
+    numel= 1;
+    dims_pow = (1<<num_dims);
     
     /* Make fftw planes */
     fftw_plan_in_place = init_fftw_plan(imageR, imageI, imageR, imageI, dims, num_dims,1);
-    ifftw_plan_in_place = init_fftw_plan(outI, outR, outI, outR, dims, num_dims,1);
+//    ifftw_plan_in_place = init_fftw_plan(outI, outR, outI, outR, dims, num_dims,1);
+    ifftw_plan_in_place = init_fftw_plan(outI, outR, outI, outR, dims, num_dims,dims_pow);
     
     /* find the number of elements in the image */
     for (int ind =0; ind<num_dims; ind++) {
@@ -113,19 +119,21 @@ void nd_dwt_dec_1level(double *outR, double *outI, double *imageR, double *image
     /* Take the fft of the input image */
     fftw_execute_split_dft(fftw_plan_in_place, imageR, imageI, imageR, imageI);
  
-    /* Loop over each subband. multiply be the kernele and take ifft */
-    #pragma omp parallel for private(start_ind)
-    for (int ind = 0; ind<numel*(1<<num_dims); ind+=numel) {
+    /* Loop over each subband. multiply be the kernel */
+//    #pragma omp parallel for
+    for (int ind = 0; ind<numel*dims_pow; ind+=numel) {
         /* point by point multiply and ifft for each subband */
         pointByPoint(imageR, imageI, &kernelR[ind], &kernelI[ind], &outR[ind], &outI[ind], numel,0);
-        fftw_execute_split_dft(ifftw_plan_in_place, &outI[ind], &outR[ind], &outI[ind], &outR[ind]);
     }
     
-//     /* Normalize the DFT */
-//     for (int ind = 0; ind<numel*8; ind++) {
-//         outR[ind] = outR[ind]/numel;
-//         outI[ind] = outI[ind]/numel;
-//     }
+    /* Take ifft of the result */
+    fftw_execute_split_dft(ifftw_plan_in_place, outI, outR, outI, outR);
+    
+     /* Normalize the DFT */
+     for (int ind = 0; ind<numel*8; ind++) {
+         outR[ind] = outR[ind]/numel;
+         outI[ind] = outI[ind]/numel;
+     }
     
     /* Destory fftw_plans*/
     fftw_destroy_plan(fftw_plan_in_place);
@@ -140,7 +148,9 @@ void nd_dwt_rec_1level(double *outR, double *outI, double *imageR, double *image
 //    printf("%d\n",int_threads);
     fftw_plan_with_nthreads(8);
     fftw_plan ifftw_plan_in_place,fftw_plan_in_place;
-    unsigned int numel = 1;
+    unsigned int numel,dims_pow;
+    numel= 1;
+    dims_pow = (1<<num_dims);
     
     /* find the number of elements in the image */
     for (int ind =0; ind<num_dims; ind++) {
@@ -148,33 +158,106 @@ void nd_dwt_rec_1level(double *outR, double *outI, double *imageR, double *image
     }
     
     /* Make fftw planes */
-    fftw_plan_in_place = init_fftw_plan(imageR, imageI, imageR, imageI, dims, num_dims,(1<<num_dims));
-    ifftw_plan_in_place = init_fftw_plan(imageI, imageR, imageI, imageR, dims, num_dims,(1<<num_dims));
+    fftw_plan_in_place = init_fftw_plan(imageR, imageI, imageR, imageI, dims, num_dims,dims_pow);
+    ifftw_plan_in_place = init_fftw_plan(imageI, imageR, imageI, imageR, dims, num_dims,dims_pow);
     
     /* Take the fft of the input image */
     fftw_execute_split_dft(fftw_plan_in_place, imageR, imageI, imageR, imageI); /* */
-    pointByPoint(imageR, imageI, kernelR, kernelI, imageR, imageI, numel*(1<<num_dims),1);
+    pointByPoint(imageR, imageI, kernelR, kernelI, imageR, imageI, numel*dims_pow,1);
     fftw_execute_split_dft(ifftw_plan_in_place, imageI, imageR, imageI, imageR);
     
-    /* Loop over each subband. multiply be the kernele and take ifft */
-    #pragma omp parallel for private(start_ind)
-    for (int ind = 0; ind<numel*(1<<num_dims); ind+=numel) {
+    /* Loop over each subband and add them up */
+//    #pragma omp parallel for
+    for (int ind = 0; ind<numel*dims_pow; ind = ind + numel) {
         for (int k = 0; k<numel; k++) {
             outR[k] += imageR[k+ind];
             outI[k] += imageI[k+ind];
         }
     }
     
-//     /* Normalize the DFT */
-//     for (int ind = 0; ind<numel; ind++) {
-//         outR[ind] = outR[ind]/numel/8;
-//         outI[ind] = outI[ind]/numel/8;
-//     }
+     /* Normalize the DFT */
+     for (int ind = 0; ind<numel; ind++) {
+         outR[ind] = outR[ind]/8/numel;
+         outI[ind] = outI[ind]/8/numel;
+     }
     
     /* Destory fftw_plans*/
     fftw_destroy_plan(fftw_plan_in_place);
     fftw_destroy_plan(ifftw_plan_in_place);
 }
 
+/* =================================================================================================*/
+void nd_dwt_dec(double *outR, double *outI, double *imageR, double *imageI,
+                double *kernelR, double *kernelI, int num_dims,int *dims,int level){
+    
+    double *approxR, *approxI;
+    unsigned int size_trans,level_start,numel;
+    
+    numel = 1;
+    /* find the number of elements in the image */
+    for (int ind =0; ind<num_dims; ind++) {
+        numel *=dims[ind];
+    }
+    approxR = (double *) malloc(sizeof(double)*numel);
+    approxI = (double *) malloc(sizeof(double)*numel);
+    
+    size_trans = (1<<num_dims) + ((1<<num_dims)-1)*(level-1);
+    level_start = ((1<<num_dims)-1)*(level-1);
+    /* printf("size trans =%d  levels start = %d\n",size_trans*numel,level_start*numel); */
+    
+    nd_dwt_dec_1level(&outR[level_start*numel], &outI[level_start*numel], imageR, imageI,
+                      kernelR, kernelI, num_dims, dims);
+    for (int ind =0; ind<numel; ind++) {
+        approxR[ind]= outR[level_start*numel + ind];
+        approxI[ind]= outI[level_start*numel + ind];
+    }
+    for (int level_ind =level-1; level_ind >0; level_ind--) {
+        level_start = ((1<<num_dims)-1)*(level_ind-1);
+        /*printf("size trans =%d  levels start = %d\n",size_trans*numel,level_start*numel); */
+        nd_dwt_dec_1level(&outR[level_start*numel], &outI[level_start*numel], approxR, approxI,
+                          kernelR, kernelI, num_dims, dims);
+        for (int ind =0; ind<numel; ind++) {
+            approxR[ind]= outR[level_start*numel + ind];
+            approxI[ind]= outI[level_start*numel + ind];
+        }
+
+    }
+    
+    /* Free Memory */
+    free(approxR);
+    free(approxI);
+}
+
+/* =================================================================================================*/
+void nd_dwt_rec(double *outR, double *outI, double *imageR, double *imageI,
+                double *kernelR, double *kernelI, int num_dims,int *dims, int level){
+    unsigned int level_start,numel;
+    numel = 1;
+    
+    /* find the number of elements in the image */
+    for (int ind =0; ind<num_dims; ind++) {
+        numel *=dims[ind];
+    }
+    
+    /* reconstruct lowest levels */
+    nd_dwt_rec_1level(outR, outI, imageR, imageI, kernelR, kernelI, num_dims,dims);
+    
+    /* loop through sucessive levels */
+    for (int level_ind =2; level_ind <=level; level_ind++) {
+        level_start = ((1<<num_dims)-1)*(level_ind-1);
+        
+        /* copy previous reconstructed level to approximate coefficent locations */
+        for (int ind = 0;ind<numel; ind++) {
+            imageR[level_start*numel + ind] = outR[ind];
+            imageI[level_start*numel + ind] = outI[ind];
+            outR[ind] = 0.0;
+            outI[ind] = 0.0;
+        }
+        
+        /* reconstruct  next lowest levels */
+        nd_dwt_rec_1level(outR, outI, &imageR[level_start*numel], &imageI[level_start*numel], kernelR, kernelI, num_dims,dims);
+    }
+    
+}
 
 

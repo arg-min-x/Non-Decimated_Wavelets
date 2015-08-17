@@ -6,11 +6,8 @@
 //  Copyright (c) 2015 Adam. All rights reserved.
 //
 
-#ifndef __wavelets_3D__nddwt__
-#define __wavelets_3D__nddwt__
-
-#include <stdio.h>
-#include <fftw3.h>
+#ifndef nddwt_H
+#define nddwt_H
 
 /* Create a plan for a multidimensional fft */
 fftw_plan init_fftw_plan(double *inR, double *inI, double *outR, double *outI, int *dims, int numDims, int howmany_trans);
@@ -28,10 +25,10 @@ void nd_dwt_rec_1level(double *outR, double *outI, double *imageR, double *image
 
 /* multilevel decomposition */
 void nd_dwt_dec(double *outR, double *outI, double *imageR, double *imageI, double *kernelR, double *kernelI, int num_dims,
-                       int *dims);
+                       int *dims,int level);
 
 /* mulitleve level reconstruction */
 void nd_dwt_rec(double *outR, double *outI, double *imageR, double *imageI, double *kernelR, double *kernelI, int num_dims,
-                       int *dims);
+                       int *dims, int level);
 
 #endif /* defined(__wavelets_3D__nddwt__) */
