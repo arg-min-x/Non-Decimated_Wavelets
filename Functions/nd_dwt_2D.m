@@ -42,7 +42,8 @@
 % Written by:   Adam Rich 
 % Last update:  2/5/2015
 %**************************************************************************
-
+%
+% To do: Add an input check for number of levels in reconstruction function
 classdef nd_dwt_2D
     properties
         f_dec;          % Decomposition Filters
@@ -103,31 +104,31 @@ classdef nd_dwt_2D
                 x_real = 0;
             end
             
-			if obj.mex
+            if obj.mex
 				y = nd_dwt_mex(x,obj.f_dec,0,level);
-			else
-            % Fourier Transform of Signal
-            x = fftn(x);
-            
-            % Preallocate
-            y = zeros([obj.sizes, 5+3*(level-2)]);
-            
-            % Calculate Mutlilevel Wavelet decomposition
-            for ind = 1:level
-                % First Level
-                if ind ==1
-                    y = level_1_dec(obj,x);
-                % Succssive Levels
-                else
-                    y = cat(3,level_1_dec(obj,fftn(squeeze(y(:,:,1)))), y(:,:,2:end));
+            else
+                % Fourier Transform of Signal
+                x = fftn(x);
+
+                % Preallocate
+                y = zeros([obj.sizes, 5+3*(level-2)]);
+
+                % Calculate Mutlilevel Wavelet decomposition
+                for ind = 1:level
+                    % First Level
+                    if ind ==1
+                        y = level_1_dec(obj,x);
+                    % Succssive Levels
+                    else
+                        y = cat(3,level_1_dec(obj,fftn(squeeze(y(:,:,1)))), y(:,:,2:end));
+                    end
                 end
-            end
-            
-            % Take the real part if the input was real
-            if x_real
-                y = real(y);
-            end
-		end        
+
+                % Take the real part if the input was real
+                if x_real
+                    y = real(y);
+                end
+            end        
         end
         
         % Multilevel Undecimated Wavelet Reconstruction

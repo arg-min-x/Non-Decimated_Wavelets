@@ -174,11 +174,11 @@ void nd_dwt_rec_1level(double *outR, double *outI, double *imageR, double *image
         }
     }
     
-     /* Normalize the DFT */
-     for (int ind = 0; ind<numel; ind++) {
-         outR[ind] = outR[ind];
-         outI[ind] = outI[ind];
-     }
+     // /* Normalize the DFT */
+     // for (int ind = 0; ind<numel; ind++) {
+     //     outR[ind] = outR[ind]/dims_pow;
+     //     outI[ind] = outI[ind]/dims_pow;
+     // }
     
     /* Destory fftw_plans*/
     fftw_destroy_plan(fftw_plan_in_place);

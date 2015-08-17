@@ -52,6 +52,7 @@ classdef nd_dwt_4D
         f_size;         % Length of the filters
         wname;          % Wavelet used
         pres_l2_norm;   % Binary indicator to preserver l2 norm of coefficients
+        mex;
     end
     
     methods
@@ -72,8 +73,13 @@ classdef nd_dwt_4D
             
             if isempty(varargin)
                 obj.pres_l2_norm = 0;
+                obj.mex = 0;
+            elseif length(varargin)==1
+                obj.pres_l2_norm = varargin{1};
+                obj.mex = 0;
             else
                 obj.pres_l2_norm = varargin{1};
+                obj.mex = varargin{2};
             end
             
             % Get the Filter Coefficients
@@ -91,26 +97,31 @@ classdef nd_dwt_4D
                 x_real = 0;
             end
             
-            % Fourier Transform of Signal
-            x = fftn(x);
+            if obj.mex
+                y = nd_dwt_mex(x,obj.f_dec,0,level);
+            else
+                
+                % Fourier Transform of Signal
+                x = fftn(x);
 
-            % Preallocate
-            y = zeros([obj.sizes, 16+15*(level-1)]);
-            
-            % Calculate Mutlilevel Wavelet decomposition
-            for ind = 1:level
-                % First Level
-                if ind ==1
-                    y = level_1_dec(obj,x);
-                % Succssive Levels
-                else
-                    y = cat(5,level_1_dec(obj,fftn(squeeze(y(:,:,:,:,1)))), y(:,:,:,:,2:end));
+                % Preallocate
+                y = zeros([obj.sizes, 16+15*(level-1)]);
+
+                % Calculate Mutlilevel Wavelet decomposition
+                for ind = 1:level
+                    % First Level
+                    if ind ==1
+                        y = level_1_dec(obj,x);
+                    % Succssive Levels
+                    else
+                        y = cat(5,level_1_dec(obj,fftn(squeeze(y(:,:,:,:,1)))), y(:,:,:,:,2:end));
+                    end
                 end
-            end
-                 
-            % Take the real part if the input was real
-            if x_real
-                y = real(y);
+
+                % Take the real part if the input was real
+                if x_real
+                    y = real(y);
+                end
             end
         end
         
@@ -127,30 +138,34 @@ classdef nd_dwt_4D
                 x_real = 0;
             end
             
-            % Fourier Transform of Signal
-            x = fft(fft(fft(fft(x,[],1),[],2),[],3),[],4);
-            
-            % Reconstruct from Multiple Levels
-            for ind = 1:level
-                % First Level
-                if ind ==1
-                    y = level_1_rec(obj,x);
-                    if ~obj.pres_l2_norm
-                        y = y/16;
+            if obj.mex
+                y = nd_dwt_mex(x,obj.f_dec,1,level);
+            else
+                % Fourier Transform of Signal
+                x = fft(fft(fft(fft(x,[],1),[],2),[],3),[],4);
+
+                % Reconstruct from Multiple Levels
+                for ind = 1:level
+                    % First Level
+                    if ind ==1
+                        y = level_1_rec(obj,x);
+                        if ~obj.pres_l2_norm
+                            y = y/16;
+                        end
+                    % Succssive Levels
+                    else
+                        y = fftn(y);
+                        y = level_1_rec(obj,cat(5,y,x(:,:,:,:,17+(ind-2)*15:31+(ind-2)*15)));
+                        if ~obj.pres_l2_norm
+                            y = y/16;
+                        end
                     end
-                % Succssive Levels
-                else
-                    y = fftn(y);
-                    y = level_1_rec(obj,cat(5,y,x(:,:,:,:,17+(ind-2)*15:31+(ind-2)*15)));
-                    if ~obj.pres_l2_norm
-                        y = y/16;
-                    end
+                end 
+
+                % Take the real part if the input was real
+                if x_real
+                    y = real(y);
                 end
-            end 
-            
-            % Take the real part if the input was real
-            if x_real
-                y = real(y);
             end
         end
     end
@@ -217,22 +232,22 @@ classdef nd_dwt_4D
             % Take the Outerproducts for the fourth dimension
             for kk = 1:size(dec_LLL,3)
                 for ii = 1:size(dec_LLL,2)
-                    f_dec.LLLL(:,ii,kk,:) = dec_LLL(:,ii,kk)*LO_D4;
-                    f_dec.HLLL(:,ii,kk,:) = dec_HLL(:,ii,kk)*LO_D4;
-                    f_dec.LHLL(:,ii,kk,:) = dec_LHL(:,ii,kk)*LO_D4;
-                    f_dec.HHLL(:,ii,kk,:) = dec_HHL(:,ii,kk)*LO_D4;
-                    f_dec.LLHL(:,ii,kk,:) = dec_LLH(:,ii,kk)*LO_D4;
-                    f_dec.HLHL(:,ii,kk,:) = dec_HLH(:,ii,kk)*LO_D4;
-                    f_dec.LHHL(:,ii,kk,:) = dec_LHH(:,ii,kk)*LO_D4;
-                    f_dec.HHHL(:,ii,kk,:) = dec_HHH(:,ii,kk)*LO_D4;
-                    f_dec.LLLH(:,ii,kk,:) = dec_LLL(:,ii,kk)*HI_D4;
-                    f_dec.HLLH(:,ii,kk,:) = dec_HLL(:,ii,kk)*HI_D4;
-                    f_dec.LHLH(:,ii,kk,:) = dec_LHL(:,ii,kk)*HI_D4;
-                    f_dec.HHLH(:,ii,kk,:) = dec_HHL(:,ii,kk)*HI_D4;
-                    f_dec.LLHH(:,ii,kk,:) = dec_LLH(:,ii,kk)*HI_D4;
-                    f_dec.HLHH(:,ii,kk,:) = dec_HLH(:,ii,kk)*HI_D4;
-                    f_dec.LHHH(:,ii,kk,:) = dec_LHH(:,ii,kk)*HI_D4;
-                    f_dec.HHHH(:,ii,kk,:) = dec_HHH(:,ii,kk)*HI_D4;
+                    f_dec1(:,ii,kk,:,1) = dec_LLL(:,ii,kk)*LO_D4;
+                    f_dec1(:,ii,kk,:,2) = dec_HLL(:,ii,kk)*LO_D4;
+                    f_dec1(:,ii,kk,:,3) = dec_LHL(:,ii,kk)*LO_D4;
+                    f_dec1(:,ii,kk,:,4) = dec_HHL(:,ii,kk)*LO_D4;
+                    f_dec1(:,ii,kk,:,5) = dec_LLH(:,ii,kk)*LO_D4;
+                    f_dec1(:,ii,kk,:,6) = dec_HLH(:,ii,kk)*LO_D4;
+                    f_dec1(:,ii,kk,:,7) = dec_LHH(:,ii,kk)*LO_D4;
+                    f_dec1(:,ii,kk,:,8) = dec_HHH(:,ii,kk)*LO_D4;
+                    f_dec1(:,ii,kk,:,9) = dec_LLL(:,ii,kk)*HI_D4;
+                    f_dec1(:,ii,kk,:,10) = dec_HLL(:,ii,kk)*HI_D4;
+                    f_dec1(:,ii,kk,:,11) = dec_LHL(:,ii,kk)*HI_D4;
+                    f_dec1(:,ii,kk,:,12) = dec_HHL(:,ii,kk)*HI_D4;
+                    f_dec1(:,ii,kk,:,13) = dec_LLH(:,ii,kk)*HI_D4;
+                    f_dec1(:,ii,kk,:,14) = dec_HLH(:,ii,kk)*HI_D4;
+                    f_dec1(:,ii,kk,:,15) = dec_LHH(:,ii,kk)*HI_D4;
+                    f_dec1(:,ii,kk,:,16) = dec_HHH(:,ii,kk)*HI_D4;
                 end
             end
 
@@ -267,22 +282,27 @@ classdef nd_dwt_4D
             else
                 scale = 1;
             end
-            f_dec.LLLL = scale*shift.*fftn(f_dec.LLLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.HLLL = scale*shift.*fftn(f_dec.HLLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.LHLL = scale*shift.*fftn(f_dec.LHLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.HHLL = scale*shift.*fftn(f_dec.HHLL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.LLHL = scale*shift.*fftn(f_dec.LLHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.HLHL = scale*shift.*fftn(f_dec.HLHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.LHHL = scale*shift.*fftn(f_dec.LHHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.HHHL = scale*shift.*fftn(f_dec.HHHL,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.LLLH = scale*shift.*fftn(f_dec.LLLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.HLLH = scale*shift.*fftn(f_dec.HLLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.LHLH = scale*shift.*fftn(f_dec.LHLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.HHLH = scale*shift.*fftn(f_dec.HHLH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.LLHH = scale*shift.*fftn(f_dec.LLHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.HLHH = scale*shift.*fftn(f_dec.HLHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.LHHH = scale*shift.*fftn(f_dec.LHHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec.HHHH = scale*shift.*fftn(f_dec.HHHH,[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            if obj.mex
+                scale2 = 1/prod(obj.sizes);
+            else
+                scale2 = 1;
+            end
+            f_dec(:,:,:,:,1) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,1),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec(:,:,:,:,2) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,2),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec(:,:,:,:,3) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,3),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec(:,:,:,:,4) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,4),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec(:,:,:,:,5) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,5),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec(:,:,:,:,6) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,6),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec(:,:,:,:,7) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,7),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec(:,:,:,:,8) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,8),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec(:,:,:,:,9) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,9),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec(:,:,:,:,10) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,10),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec(:,:,:,:,11) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,11),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec(:,:,:,:,12) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,12),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec(:,:,:,:,13) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,13),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec(:,:,:,:,14) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,14),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec(:,:,:,:,15) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,15),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            f_dec(:,:,:,:,16) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,16),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
         end
         
         % Single Level Redundant Wavelet Decomposition
@@ -291,22 +311,22 @@ classdef nd_dwt_4D
             y = zeros([obj.sizes,16]);
             
             % Calculate Wavelet Coefficents Using Fast Convolution
-            y(:,:,:,:,1) =  ifftn(x_f.*obj.f_dec.LLLL);
-            y(:,:,:,:,2) =  ifftn(x_f.*obj.f_dec.HLLL);
-            y(:,:,:,:,3) =  ifftn(x_f.*obj.f_dec.LHLL);
-            y(:,:,:,:,4) =  ifftn(x_f.*obj.f_dec.HHLL);
-            y(:,:,:,:,5) =  ifftn(x_f.*obj.f_dec.LLHL);
-            y(:,:,:,:,6) =  ifftn(x_f.*obj.f_dec.HLHL);
-            y(:,:,:,:,7) =  ifftn(x_f.*obj.f_dec.LHHL);
-            y(:,:,:,:,8) =  ifftn(x_f.*obj.f_dec.HHHL);
-            y(:,:,:,:,9) =  ifftn(x_f.*obj.f_dec.LLLH);
-            y(:,:,:,:,10) = ifftn(x_f.*obj.f_dec.HLLH);
-            y(:,:,:,:,11) = ifftn(x_f.*obj.f_dec.LHLH);
-            y(:,:,:,:,12) = ifftn(x_f.*obj.f_dec.HHLH);
-            y(:,:,:,:,13) = ifftn(x_f.*obj.f_dec.LLHH);
-            y(:,:,:,:,14) = ifftn(x_f.*obj.f_dec.HLHH);
-            y(:,:,:,:,15) = ifftn(x_f.*obj.f_dec.LHHH);
-            y(:,:,:,:,16) = ifftn(x_f.*obj.f_dec.HHHH);
+            y(:,:,:,:,1) =  ifftn(x_f.*obj.f_dec(:,:,:,:,1));
+            y(:,:,:,:,2) =  ifftn(x_f.*obj.f_dec(:,:,:,:,2));
+            y(:,:,:,:,3) =  ifftn(x_f.*obj.f_dec(:,:,:,:,3));
+            y(:,:,:,:,4) =  ifftn(x_f.*obj.f_dec(:,:,:,:,4));
+            y(:,:,:,:,5) =  ifftn(x_f.*obj.f_dec(:,:,:,:,5));
+            y(:,:,:,:,6) =  ifftn(x_f.*obj.f_dec(:,:,:,:,6));
+            y(:,:,:,:,7) =  ifftn(x_f.*obj.f_dec(:,:,:,:,7));
+            y(:,:,:,:,8) =  ifftn(x_f.*obj.f_dec(:,:,:,:,8));
+            y(:,:,:,:,9) =  ifftn(x_f.*obj.f_dec(:,:,:,:,9));
+            y(:,:,:,:,10) = ifftn(x_f.*obj.f_dec(:,:,:,:,10));
+            y(:,:,:,:,11) = ifftn(x_f.*obj.f_dec(:,:,:,:,11));
+            y(:,:,:,:,12) = ifftn(x_f.*obj.f_dec(:,:,:,:,12));
+            y(:,:,:,:,13) = ifftn(x_f.*obj.f_dec(:,:,:,:,13));
+            y(:,:,:,:,14) = ifftn(x_f.*obj.f_dec(:,:,:,:,14));
+            y(:,:,:,:,15) = ifftn(x_f.*obj.f_dec(:,:,:,:,15));
+            y(:,:,:,:,16) = ifftn(x_f.*obj.f_dec(:,:,:,:,16));
             
         end
         
@@ -314,22 +334,22 @@ classdef nd_dwt_4D
         function y = level_1_rec(obj,x_f)
             
             % Reconstruct the 3D array using Fast Convolution
-            y = ifftn(squeeze(x_f(:,:,:,:,1)).*conj(obj.f_dec.LLLL));
-            y = y + ifftn(squeeze(x_f(:,:,:,:,2)).*conj(obj.f_dec.HLLL));
-            y = y + ifftn(squeeze(x_f(:,:,:,:,3)).*conj(obj.f_dec.LHLL));
-            y = y + ifftn(squeeze(x_f(:,:,:,:,4)).*conj(obj.f_dec.HHLL));
-            y = y + ifftn(squeeze(x_f(:,:,:,:,5)).*conj(obj.f_dec.LLHL));
-            y = y + ifftn(squeeze(x_f(:,:,:,:,6)).*conj(obj.f_dec.HLHL));
-            y = y + ifftn(squeeze(x_f(:,:,:,:,7)).*conj(obj.f_dec.LHHL));
-            y = y + ifftn(squeeze(x_f(:,:,:,:,8)).*conj(obj.f_dec.HHHL));
-            y = y + ifftn(squeeze(x_f(:,:,:,:,9)).*conj(obj.f_dec.LLLH));
-            y = y + ifftn(squeeze(x_f(:,:,:,:,10)).*conj(obj.f_dec.HLLH));
-            y = y + ifftn(squeeze(x_f(:,:,:,:,11)).*conj(obj.f_dec.LHLH));
-            y = y + ifftn(squeeze(x_f(:,:,:,:,12)).*conj(obj.f_dec.HHLH));
-            y = y + ifftn(squeeze(x_f(:,:,:,:,13)).*conj(obj.f_dec.LLHH));
-            y = y + ifftn(squeeze(x_f(:,:,:,:,14)).*conj(obj.f_dec.HLHH));
-            y = y + ifftn(squeeze(x_f(:,:,:,:,15)).*conj(obj.f_dec.LHHH));
-            y = y + ifftn(squeeze(x_f(:,:,:,:,16)).*conj(obj.f_dec.HHHH));
+            y = ifftn(squeeze(x_f(:,:,:,:,1)).*conj(obj.f_dec(:,:,:,:,1)));
+            y = y + ifftn(squeeze(x_f(:,:,:,:,2)).*conj(obj.f_dec(:,:,:,:,2)));
+            y = y + ifftn(squeeze(x_f(:,:,:,:,3)).*conj(obj.f_dec(:,:,:,:,3)));
+            y = y + ifftn(squeeze(x_f(:,:,:,:,4)).*conj(obj.f_dec(:,:,:,:,4)));
+            y = y + ifftn(squeeze(x_f(:,:,:,:,5)).*conj(obj.f_dec(:,:,:,:,5)));
+            y = y + ifftn(squeeze(x_f(:,:,:,:,6)).*conj(obj.f_dec(:,:,:,:,6)));
+            y = y + ifftn(squeeze(x_f(:,:,:,:,7)).*conj(obj.f_dec(:,:,:,:,7)));
+            y = y + ifftn(squeeze(x_f(:,:,:,:,8)).*conj(obj.f_dec(:,:,:,:,8)));
+            y = y + ifftn(squeeze(x_f(:,:,:,:,9)).*conj(obj.f_dec(:,:,:,:,9)));
+            y = y + ifftn(squeeze(x_f(:,:,:,:,10)).*conj(obj.f_dec(:,:,:,:,10)));
+            y = y + ifftn(squeeze(x_f(:,:,:,:,11)).*conj(obj.f_dec(:,:,:,:,11)));
+            y = y + ifftn(squeeze(x_f(:,:,:,:,12)).*conj(obj.f_dec(:,:,:,:,12)));
+            y = y + ifftn(squeeze(x_f(:,:,:,:,13)).*conj(obj.f_dec(:,:,:,:,13)));
+            y = y + ifftn(squeeze(x_f(:,:,:,:,14)).*conj(obj.f_dec(:,:,:,:,14)));
+            y = y + ifftn(squeeze(x_f(:,:,:,:,15)).*conj(obj.f_dec(:,:,:,:,15)));
+            y = y + ifftn(squeeze(x_f(:,:,:,:,16)).*conj(obj.f_dec(:,:,:,:,16)));
 
         end
     end
