@@ -103,12 +103,13 @@ classdef nd_dwt_3D
             else
                 x_real = 0;
             end
+			
+            % Fourier Transform of Signal
+            x = fftn(x);
             if obj.mex
                 y = nd_dwt_mex(x,obj.f_dec,0,level);
             else
-            % Fourier Transform of Signal
-            x = fftn(x);
-            
+
             % Preallocate
             y = zeros([obj.sizes, 8+7*(level-1)]);
             
@@ -142,35 +143,39 @@ classdef nd_dwt_3D
             
             % Find the decomposition level
             level = ceil(size(x,4)/8);
- 	    if obj.mex
-		    y = nd_dwt_mex(x,obj.f_dec,1,level);
-	    else 
+			
             % Fourier Transform of Signal
             x = fft(fft(fft(x,[],1),[],2),[],3);
+			
+			% Use c mex version if chose
+ 	    	if obj.mex
+				% Take nd dwt
+		    	y = nd_dwt_mex(x,obj.f_dec,1,level);
+	    	else 
             
-            % Reconstruct from Multiple Levels
-            for ind = 1:level
-                % First Level
-                if ind ==1
-                    y = level_1_rec(obj,x);
-                    if ~obj.pres_l2_norm
-                        y = y/8;
-                    end
-                % Succssive Levels
-                else
-                    y = fftn(y);
-                    y = level_1_rec(obj,cat(4,y,x(:,:,:,9+(ind-2)*7:15+(ind-2)*7)));
-                    if ~obj.pres_l2_norm
-                        y = y/8;
-                    end
-                end
-            end
-            
+            	% Reconstruct from Multiple Levels
+            	for ind = 1:level
+                	% First Level
+                	if ind ==1
+                    	y = level_1_rec(obj,x);
+                    	if ~obj.pres_l2_norm
+                        	y = y/8;
+                    	end
+                		% Succssive Levels
+                	else
+                    	y = fftn(y);
+                    	y = level_1_rec(obj,cat(4,y,x(:,:,:,9+(ind-2)*7:15+(ind-2)*7)));
+                    	if ~obj.pres_l2_norm
+                        	y = y/8;
+                    	end
+                	end
+            	end
+    		end
+			
             % Take the real part if the input was real
             if x_real
                 y = real(y);
             end
-    end
         end
     end
     

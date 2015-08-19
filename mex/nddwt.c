@@ -117,7 +117,7 @@ void nd_dwt_dec_1level(double *outR, double *outI, double *imageR, double *image
     }
 
     /* Take the fft of the input image */
-    fftw_execute_split_dft(fftw_plan_in_place, imageR, imageI, imageR, imageI);
+    // fftw_execute_split_dft(fftw_plan_in_place, imageR, imageI, imageR, imageI);
  
     /* Loop over each subband. multiply be the kernel */
 //    #pragma omp parallel for
@@ -161,7 +161,7 @@ void nd_dwt_rec_1level(double *outR, double *outI, double *imageR, double *image
     ifftw_plan_in_place = init_fftw_plan(imageI, imageR, imageI, imageR, dims, num_dims,dims_pow);
     
     /* Take the fft of the input image */
-    fftw_execute_split_dft(fftw_plan_in_place, imageR, imageI, imageR, imageI); /* */
+    // fftw_execute_split_dft(fftw_plan_in_place, imageR, imageI, imageR, imageI); /* */
     pointByPoint(imageR, imageI, kernelR, kernelI, imageR, imageI, numel*dims_pow,1);
     fftw_execute_split_dft(ifftw_plan_in_place, imageI, imageR, imageI, imageR);
     
