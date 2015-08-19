@@ -108,7 +108,6 @@ void nd_dwt_dec_1level(double *outR, double *outI, double *imageR, double *image
     
     /* Make fftw planes */
     fftw_plan_in_place = init_fftw_plan(imageR, imageI, imageR, imageI, dims, num_dims,1);
-//    ifftw_plan_in_place = init_fftw_plan(outI, outR, outI, outR, dims, num_dims,1);
     ifftw_plan_in_place = init_fftw_plan(outI, outR, outI, outR, dims, num_dims,dims_pow);
     
     /* find the number of elements in the image */
@@ -144,7 +143,6 @@ void nd_dwt_rec_1level(double *outR, double *outI, double *imageR, double *image
                        double *kernelR, double *kernelI, int num_dims,int *dims){
     /* fftw plan init */
     int int_threads = fftw_init_threads();
-//    printf("%d\n",int_threads);
     fftw_plan_with_nthreads(8);
     fftw_plan ifftw_plan_in_place,fftw_plan_in_place;
     unsigned int numel,dims_pow;
@@ -191,35 +189,46 @@ void nd_dwt_dec(double *outR, double *outI, double *imageR, double *imageI,
     
     double *approxR, *approxI;
     unsigned int size_trans,level_start,numel;
-    
+    fftw_plan fftw_plan_in_place;
+		
     numel = 1;
     /* find the number of elements in the image */
     for (int ind =0; ind<num_dims; ind++) {
         numel *=dims[ind];
     }
+	
+	/* allocate memory for old approximate coefficients */
     approxR = (double *) malloc(sizeof(double)*numel);
     approxI = (double *) malloc(sizeof(double)*numel);
+	
+	/* create plan for old approximate coefficients */
+	fftw_plan_in_place = init_fftw_plan(approxR, approxI, approxR, approxI, dims, num_dims,1);
     
     size_trans = (1<<num_dims) + ((1<<num_dims)-1)*(level-1);
     level_start = ((1<<num_dims)-1)*(level-1);
     /* printf("size trans =%d  levels start = %d\n",size_trans*numel,level_start*numel); */
     
+	/* Take fft and store the old aproximate coefficient in approx */
     nd_dwt_dec_1level(&outR[level_start*numel], &outI[level_start*numel], imageR, imageI,
                       kernelR, kernelI, num_dims, dims);
     for (int ind =0; ind<numel; ind++) {
         approxR[ind]= outR[level_start*numel + ind];
         approxI[ind]= outI[level_start*numel + ind];
     }
+	
+	/* take fft of old approximate coefficients, this could be avoided! */
+	fftw_execute_split_dft(fftw_plan_in_place, approxR, approxI, approxR, approxI);
+		
+	/* loop over remaining levels */
     for (int level_ind =level-1; level_ind >0; level_ind--) {
         level_start = ((1<<num_dims)-1)*(level_ind-1);
-        /*printf("size trans =%d  levels start = %d\n",size_trans*numel,level_start*numel); */
         nd_dwt_dec_1level(&outR[level_start*numel], &outI[level_start*numel], approxR, approxI,
                           kernelR, kernelI, num_dims, dims);
         for (int ind =0; ind<numel; ind++) {
             approxR[ind]= outR[level_start*numel + ind];
             approxI[ind]= outI[level_start*numel + ind];
         }
-
+		fftw_execute_split_dft(fftw_plan_in_place, approxR, approxI, approxR, approxI);
     }
     
     /* Free Memory */
@@ -230,32 +239,53 @@ void nd_dwt_dec(double *outR, double *outI, double *imageR, double *imageI,
 /* =================================================================================================*/
 void nd_dwt_rec(double *outR, double *outI, double *imageR, double *imageI,
                 double *kernelR, double *kernelI, int num_dims,int *dims, int level){
-    unsigned int level_start,numel;
+    unsigned int level_start,numel, dims_pow;
     numel = 1;
-    
+	fftw_plan fftw_plan_in_place;
+    // dims_pow = (1<<num_dims);
+	
     /* find the number of elements in the image */
     for (int ind =0; ind<num_dims; ind++) {
         numel *=dims[ind];
     }
-    
+	fftw_plan_in_place = init_fftw_plan(outR, outI, outR, outI, dims, num_dims,1);
+	
     /* reconstruct lowest levels */
     nd_dwt_rec_1level(outR, outI, imageR, imageI, kernelR, kernelI, num_dims,dims);
     
+    /* Take the fft of the input image */
+    fftw_execute_split_dft(fftw_plan_in_place, outR, outI, outR, outI); 
+	
+    /* copy previous reconstructed level to approximate coefficent locations */
+	level_start = ((1<<num_dims)-1);
+    for (int ind = 0;ind<numel; ind++) {
+        imageR[level_start*numel + ind] = outR[ind];
+        imageI[level_start*numel + ind] = outI[ind];
+        outR[ind] = 0.0;
+        outI[ind] = 0.0;
+    }
+	
     /* loop through sucessive levels */
-    for (int level_ind =2; level_ind <=level; level_ind++) {
+	for (int level_ind =2; level_ind <=level; level_ind++) {
         level_start = ((1<<num_dims)-1)*(level_ind-1);
-        
-        /* copy previous reconstructed level to approximate coefficent locations */
-        for (int ind = 0;ind<numel; ind++) {
-            imageR[level_start*numel + ind] = outR[ind];
-            imageI[level_start*numel + ind] = outI[ind];
-            outR[ind] = 0.0;
-            outI[ind] = 0.0;
-        }
-        
+              
         /* reconstruct  next lowest levels */
         nd_dwt_rec_1level(outR, outI, &imageR[level_start*numel], &imageI[level_start*numel], kernelR, kernelI, num_dims,dims);
-    }
+    
+		if (level_ind != level){
+		    /* Take the fft of the input image */
+		    fftw_execute_split_dft(fftw_plan_in_place, outR, outI, outR, outI); 
+	
+		    /* copy previous reconstructed level to approximate coefficent locations */
+			level_start = ((1<<num_dims)-1)*(level_ind);
+		    for (int ind = 0;ind<numel; ind++) {
+		        imageR[level_start*numel + ind] = outR[ind];
+		        imageI[level_start*numel + ind] = outI[ind];
+		        outR[ind] = 0.0;
+		        outI[ind] = 0.0;
+		    }
+		}
+	}
 
 }
 

@@ -1,11 +1,11 @@
 clear all;
 %%
-x = randn(131,128,30) + 1j*randn(131,128,30);
-level = 2;
+x = randn(131,28,30) + 1j*randn(131,28,30);
+level = 9;
 nddwt = nd_dwt_3D('db1',size(x),1,0);
 nddwt_mex = nd_dwt_3D('db1',size(x),1,1);
 
-num_test = 5;
+num_test = 1;
 tic;
 for ind = 1:num_test;
 	y_mat = nddwt.dec(x,level);
