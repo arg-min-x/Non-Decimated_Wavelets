@@ -8,6 +8,13 @@
 void mexFunction( int nlhs, mxArray *plhs[],
                   int nrhs, const mxArray *prhs[] )
 {
+    /* */
+    int num_dims,ind, numel,num_dims_kernel,level;
+    const int *dims_mat,*dims_kernel;
+    int *dims_c;
+    double *imageR, *imageI, *kernelR, *kernelI,*outR,*outI;
+    int *dims_out;
+	
     /* Input Checks*/
     if (nrhs < 4) {
         mexErrMsgIdAndTxt("MATLAB:FFT2mx:invalidNumInputs",
@@ -24,19 +31,26 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     /* Forward Transform */
     if (mxGetScalar(prhs[2]) ==0) {
-        if (mxGetNumberOfElements(prhs[1]) !=
+        dims_mat = mxGetDimensions(prhs[0]);            /* array of image dimension sizes */
+		if (mxGetNumberOfDimensions(prhs[0]) == 2){
+			if (dims_mat[1]==1 && mxGetNumberOfElements(prhs[1]) != mxGetNumberOfElements(prhs[0])*2 ){
+				mexErrMsgIdAndTxt( "MATLAB:FFT2mx:invalidNumInputs",
+	                          "FIlter size and image size not consistant");
+							  
+			}
+			else if (dims_mat[1]!=1 && mxGetNumberOfElements(prhs[1]) != mxGetNumberOfElements(prhs[0])*(1<<(mxGetNumberOfDimensions(prhs[0])))) {
+				mexErrMsgIdAndTxt( "MATLAB:FFT2mx:invalidNumInputs",
+	                          "FIlter size and image size not consistant");
+							  
+			}
+		}
+       	else if(mxGetNumberOfElements(prhs[1]) !=
             mxGetNumberOfElements(prhs[0])*(1<<(mxGetNumberOfDimensions(prhs[0]))) ) {
-            mexErrMsgIdAndTxt( "MATLAB:FFT2mx:invalidNumInputs",
-                          "FIlter size and image size not consistant");
+	            mexErrMsgIdAndTxt( "MATLAB:FFT2mx:invalidNumInputs",
+	                          "FIlter size and image size not consistant");
         }
-
-        /* */
-        int num_dims,ind, numel,num_dims_kernel,level;
-        const int *dims_mat,*dims_kernel;
-        int *dims_c;
-        double *imageR, *imageI, *kernelR, *kernelI,*outR,*outI;
-        int *dims_out;
         
+
         /* Get pointers to input array */
         imageR =  (double *) mxGetPr(prhs[0]);
         imageI =  (double *) mxGetPi(prhs[0]);
@@ -51,6 +65,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
         num_dims_kernel = mxGetNumberOfDimensions(prhs[1]);/* number of kernel dimensions */
         level = mxGetScalar(prhs[3]);                   /* level of decomposition */
     
+		if (dims_mat[1]==1){
+			num_dims = 1;
+		}
+		
         /* C uses row major array storage, reverse dimension order to use column major*/
         dims_c = (int *) malloc(sizeof(int)*num_dims);
         for (ind =0;ind<num_dims;ind++){
@@ -86,12 +104,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     /* Inverse Transform */
     else{
-        /* Declarations */
-        int num_dims,ind, numel,num_dims_kernel,level;
-        const int *dims_mat,*dims_kernel;
-        int *dims_c;
-        double *imageR, *imageI, *kernelR, *kernelI,*outR,*outI;
-        
+		        
         /* Get pointers to input array */
         imageR =  (double *) mxGetPr(prhs[0]);
         imageI =  (double *) mxGetPi(prhs[0]);

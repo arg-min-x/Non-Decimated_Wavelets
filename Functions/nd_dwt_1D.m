@@ -52,6 +52,7 @@ classdef nd_dwt_1D
         f_size;         % Length of the filters
         wname;          % Wavelet used
         pres_l2_norm;   % Binary indicator to preserver l2 norm of coefficients
+		mex;
     end
     
     methods
@@ -70,8 +71,13 @@ classdef nd_dwt_1D
             
             if isempty(varargin)
                 obj.pres_l2_norm = 0;
+                obj.mex = 0;
+            elseif length(varargin)==1
+                obj.pres_l2_norm = varargin{1};
+                obj.mex = 0;
             else
                 obj.pres_l2_norm = varargin{1};
+                obj.mex = varargin{2};
             end
             
             % Set Image size
@@ -98,19 +104,23 @@ classdef nd_dwt_1D
             end
             x = fft(x);
             
-            % Preallocate
-            y = zeros([obj.sizes, 2+(level-1)]);
+			if obj.mex
+				y = nd_dwt_mex(x,obj.f_dec,0,level);
+			else
+            	% Preallocate
+   			 	y = zeros([obj.sizes, 2+(level-1)]);
 
-            % Calculate Mutlilevel Wavelet decomposition
-            for ind = 1:level
-                % First Level
-                if ind ==1
-                    y = level_1_dec(obj,x);
-                % Succssive Levels
-                else
-                    y = cat(2,level_1_dec(obj,fftn(squeeze(y(:,1)))), y(:,2:end));
-                end
-            end
+            	% Calculate Mutlilevel Wavelet decomposition
+           	 	for ind = 1:level
+              	  	% First Level
+               	 	if ind ==1
+                 	   y = level_1_dec(obj,x);
+               		% Succssive Levels
+               	 	else
+                 	   y = cat(2,level_1_dec(obj,fftn(squeeze(y(:,1)))), y(:,2:end));
+                	end
+            	end
+			end
             
             % Take the real part if the input was real
             if x_real
@@ -134,24 +144,27 @@ classdef nd_dwt_1D
             % Fourier Transform of Signal
             x = fft(x,[],1);
             
-            % Reconstruct from Multiple Levels
-            for ind = 1:level
-                % First Level
-                if ind ==1
-                    y = level_1_rec(obj,x);
-                    if ~obj.pres_l2_norm
-                        y = y/2;
-                    end
-                % Succssive Levels
-                else
-                    y = fft(y);
-                    y = level_1_rec(obj,cat(2,y,x(:,3+(ind-2))));
-                    if ~obj.pres_l2_norm
-                        y = y/2;
-                    end
-                end
-            end
-            
+			if obj.mex
+				y = nd_dwt_mex(x,obj.f_dec,1,level);
+			else
+            	% Reconstruct from Multiple Levels
+            	for ind = 1:level
+                	% First Level
+                	if ind ==1
+                    	y = level_1_rec(obj,x);
+                    	if ~obj.pres_l2_norm
+                        	y = y/2;
+                    	end
+                		% Succssive Levels
+                	else
+                    	y = fft(y);
+                    	y = level_1_rec(obj,cat(2,y,x(:,3+(ind-2))));
+                    	if ~obj.pres_l2_norm
+                        	y = y/2;
+                    	end
+                	end
+            	end
+			end
             % Take the real part if the input was real
             if x_real
                 y = real(y);
@@ -189,9 +202,13 @@ classdef nd_dwt_1D
             else
                 scale = 1;
             end
-            
-            f_dec.L = scale*(shift.*fft(LO_D,obj.sizes)).';
-            f_dec.H = scale*(shift.*fft(HI_D,obj.sizes)).';
+            if obj.mex
+                scale2 = 1/prod(obj.sizes);
+            else
+                scale2 = 1;
+            end
+            f_dec(:,1) = scale2*scale*(shift.*fft(LO_D,obj.sizes)).';
+            f_dec(:,2) = scale2*scale*(shift.*fft(HI_D,obj.sizes)).';
         end
         
         % Single Level Redundant Wavelet Decomposition
@@ -201,8 +218,8 @@ classdef nd_dwt_1D
             y = zeros([obj.sizes,2]);
             
             % Calculate Wavelet Coefficents Using Fast Convolution
-            y(:,1) = ifft(x_f.*obj.f_dec.L);
-            y(:,2) = ifft(x_f.*obj.f_dec.H);
+            y(:,1) = ifft(x_f.*obj.f_dec(:,1));
+            y(:,2) = ifft(x_f.*obj.f_dec(:,2));
             
             if isreal(x_f)
                 y = real(y);
@@ -213,8 +230,8 @@ classdef nd_dwt_1D
         function y = level_1_rec(obj,x_f)
             
             % Reconstruct the 3D array using Fast Convolution
-            y = ifft(squeeze(x_f(:,1)).*conj(obj.f_dec.L));
-            y = y + ifft(squeeze(x_f(:,2)).*conj(obj.f_dec.H));
+            y = ifft(squeeze(x_f(:,1)).*conj(obj.f_dec(:,1)));
+            y = y + ifft(squeeze(x_f(:,2)).*conj(obj.f_dec(:,2)));
             
             if isreal(x_f)
                 y = real(y);

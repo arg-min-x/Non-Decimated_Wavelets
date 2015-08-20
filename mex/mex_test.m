@@ -1,7 +1,7 @@
 clear all;
 %%
 x = randn(131,28,30) + 1j*randn(131,28,30);
-level = 9;
+level = 1;
 nddwt = nd_dwt_3D('db1',size(x),1,0);
 nddwt_mex = nd_dwt_3D('db1',size(x),1,1);
 
