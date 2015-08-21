@@ -9,14 +9,14 @@ void mexFunction( int nlhs, mxArray *plhs[],
                   int nrhs, const mxArray *prhs[] )
 {
     /* */
-    int num_dims,ind, numel,num_dims_kernel,level;
+    int num_dims,ind, numel,num_dims_kernel,level,l2_pres;
     const int *dims_mat,*dims_kernel;
     int *dims_c;
     double *imageR, *imageI, *kernelR, *kernelI,*outR,*outI;
     int *dims_out;
 	
     /* Input Checks*/
-    if (nrhs < 4) {
+    if (nrhs < 5) {
         mexErrMsgIdAndTxt("MATLAB:FFT2mx:invalidNumInputs",
                           "Four Inputs Required");
     }
@@ -118,7 +118,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
         dims_kernel = mxGetDimensions(prhs[1]);
         num_dims_kernel = mxGetNumberOfDimensions(prhs[1])-1;
         level = mxGetScalar(prhs[3]);                   /* level of decomposition */
-        
+		l2_pres = mxGetScalar(prhs[4]);
+				
         /* Input Check */
         if (mxGetNumberOfElements(prhs[1]) != (mxGetNumberOfElements(prhs[0]) - (level-1)*(mxGetNumberOfElements(prhs[1]) -mxGetNumberOfElements(prhs[1])/(1<<num_dims))) ) {
             mexErrMsgIdAndTxt( "MATLAB:FFT2mx:invalidNumInputs",
@@ -135,8 +136,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
         plhs[0] = mxCreateNumericArray(num_dims_kernel, dims_kernel, mxDOUBLE_CLASS, mxCOMPLEX);
         outR = (double *) mxGetPr(plhs[0]);
         outI = (double *) mxGetPi(plhs[0]);
-        
-		int l2_pres =0;
+		
         /* Take the Inverse wavelet transform */
         if (level ==1) {
             nd_dwt_rec_1level(outR, outI, imageR, imageI, kernelR, kernelI,num_dims,

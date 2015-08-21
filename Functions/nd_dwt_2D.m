@@ -42,8 +42,7 @@
 % Written by:   Adam Rich 
 % Last update:  2/5/2015
 %**************************************************************************
-%
-% To do: Add an input check for number of levels in reconstruction function
+
 classdef nd_dwt_2D
     properties
         f_dec;          % Decomposition Filters
@@ -51,7 +50,7 @@ classdef nd_dwt_2D
         f_size;         % Length of the filters
         wname;          % Wavelet used
         pres_l2_norm;   % Binary indicator to preserver l2 norm of coefficients
-		mex;			% use mex
+        mex;
     end
     
     %% Public Methods
@@ -105,11 +104,12 @@ classdef nd_dwt_2D
             end
             
             % Fourier Transform of Signal
-            x = fftn(x);
-			
+            x = fft2(x);
+            
             if obj.mex
-				y = nd_dwt_mex(x,obj.f_dec,0,level);
+                y = nd_dwt_mex(x,obj.f_dec,0,level,obj.pres_l2_norm);
             else
+                
                 % Preallocate
                 y = zeros([obj.sizes, 5+3*(level-2)]);
 
@@ -124,17 +124,18 @@ classdef nd_dwt_2D
                     end
                 end
             end
+            
             % Take the real part if the input was real
             if x_real
-               y = real(y);
-            end      
+                y = real(y);
+            end        
         end
         
         % Multilevel Undecimated Wavelet Reconstruction
         function y = rec(obj,x)
             
             % Find the decomposition level
-            level = 1+(size(x,3)-4)/3
+            level = 1+(size(x,3)-4)/3;
             
             % Check if input is real
             if isreal(x)
@@ -144,48 +145,29 @@ classdef nd_dwt_2D
             end
             
             % Fourier Transform of Signal
-            x = fftn(x);
+            x = fft2(x);
             
             if obj.mex
-				y = nd_dwt_mex(x,obj.f_dec,1,level);
+                y = nd_dwt_mex(x,obj.f_dec,1,level,obj.pres_l2_norm);
             else
-				
-%                 % Reconstruct from Multiple Levels
-%                 for ind = 1:level
-%                     % First Level
-%                   if ind ==1
-%                        y = level_1_rec(obj,x);
-%                         if ~obj.pres_l2_norm
-%                             y = y/4;
-%                         end
-%                       % Succssive Levels
-%                   else
-%                       y = fftn(y);
-%                       y = level_1_rec(obj,cat(3,y,x(:,:,5+(ind-2)*3:7+(ind-2)*3)));
-%                       if ~obj.pres_l2_norm
-%                          y = y/4;
-%                       end
-%                   end
-%                 end
-            
-            % Reconstruct from Multiple Levels
-            for ind = 1:level
-                % First Level
-                if ind ==1
-                    y = level_1_rec(obj,x);
-                    if ~obj.pres_l2_norm
-                        y = y/4;
+                
+                % Reconstruct from Multiple Levels
+                for ind = 1:level
+                    % First Level
+                    if ind ==1
+                        y = level_1_rec(obj,x);
+                        if ~obj.pres_l2_norm
+                            y = y/4;
+                        end
+                    % Succssive Levels
+                    else
+                        y = fftn(y);
+                        y = level_1_rec(obj,cat(3,y,x(:,:,5+(ind-2)*3:7+(ind-2)*3)));
+                        if ~obj.pres_l2_norm
+                            y = y/4;
+                        end
                     end
-                % Succssive Levels
-                else
-                    y = fftn(y);
-                    y = level_1_rec(obj,cat(3,y,x(:,:,5+(ind-2)*3:7+(ind-2)*3)));
-                    if ~obj.pres_l2_norm
-                        y = y/4;
-                    end
-                end
-            end
-            
+                end 
             end
             % Take the real part if the input was real
             if x_real
@@ -267,9 +249,9 @@ classdef nd_dwt_2D
         function y = level_1_rec(obj,x_f)
             % Reconstruct the 3D array using Fast Convolution
             y = ifftn(squeeze(x_f(:,:,1)).*conj(obj.f_dec(:,:,1)));
-            y = y + ifftn(squeeze(x_f(:,:,2)).*conj(obj.f_dec(:,:,1)));
-            y = y + ifftn(squeeze(x_f(:,:,3)).*conj(obj.f_dec(:,:,1)));
-            y = y + ifftn(squeeze(x_f(:,:,4)).*conj(obj.f_dec(:,:,1)));
+            y = y + ifftn(squeeze(x_f(:,:,2)).*conj(obj.f_dec(:,:,2)));
+            y = y + ifftn(squeeze(x_f(:,:,3)).*conj(obj.f_dec(:,:,3)));
+            y = y + ifftn(squeeze(x_f(:,:,4)).*conj(obj.f_dec(:,:,4)));
         end
     end
 end

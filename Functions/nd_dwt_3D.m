@@ -107,7 +107,7 @@ classdef nd_dwt_3D
             % Fourier Transform of Signal
             x = fftn(x);
             if obj.mex
-                y = nd_dwt_mex(x,obj.f_dec,0,level);
+                y = nd_dwt_mex(x,obj.f_dec,0,level,obj.pres_l2_norm);
             else
 
             % Preallocate
@@ -150,7 +150,7 @@ classdef nd_dwt_3D
 			% Use c mex version if chose
  	    	if obj.mex
 				% Take nd dwt
-		    	y = nd_dwt_mex(x,obj.f_dec,1,level);
+		    	y = nd_dwt_mex(x,obj.f_dec,1,level,obj.pres_l2_norm);
 	    	else 
             
             	% Reconstruct from Multiple Levels

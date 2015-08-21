@@ -3,7 +3,7 @@ close all;
 
 % Load data and set parameters
 x = double(imread('cameraman.tif'));   % Load a noisy test singal
-level = 2;                            % Set the Level of decomposition
+level = 1;                            % Set the Level of decomposition
 wnames = {'db1','db4'};               % Set the wavelet used 
 perserve_l2_norm = true;              % Choose wether to preserve the l2 norm or not (optional) 
 
@@ -11,7 +11,7 @@ perserve_l2_norm = true;              % Choose wether to preserve the l2 norm or
 x = x + 1j*ones(256,256);
 
 % Initialize the nd_dwt_2D class
-nddwt = nd_dwt_2D(wnames,size(x),perserve_l2_norm);
+nddwt = nd_dwt_2D(wnames,size(x),perserve_l2_norm,1);
 
 % Perform a multilevel wavelet decomposition
 x_trans = nddwt.dec(x,level);

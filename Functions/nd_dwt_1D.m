@@ -105,7 +105,7 @@ classdef nd_dwt_1D
             x = fft(x);
             
 			if obj.mex
-				y = nd_dwt_mex(x,obj.f_dec,0,level);
+				y = nd_dwt_mex(x,obj.f_dec,0,level,obj.pres_l2_norm);
 			else
             	% Preallocate
    			 	y = zeros([obj.sizes, 2+(level-1)]);
@@ -145,7 +145,7 @@ classdef nd_dwt_1D
             x = fft(x,[],1);
             
 			if obj.mex
-				y = nd_dwt_mex(x,obj.f_dec,1,level);
+				y = nd_dwt_mex(x,obj.f_dec,1,level,obj.pres_l2_norm);
 			else
             	% Reconstruct from Multiple Levels
             	for ind = 1:level
