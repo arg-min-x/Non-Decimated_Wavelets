@@ -140,7 +140,7 @@ void nd_dwt_dec_1level(double *outR, double *outI, double *imageR, double *image
 
 /* =================================================================================================*/
 void nd_dwt_rec_1level(double *outR, double *outI, double *imageR, double *imageI,
-                       double *kernelR, double *kernelI, int num_dims,int *dims){
+                       double *kernelR, double *kernelI, int num_dims,int *dims,int l2_pres){
     /* fftw plan init */
     int int_threads = fftw_init_threads();
     fftw_plan_with_nthreads(8);
@@ -172,12 +172,14 @@ void nd_dwt_rec_1level(double *outR, double *outI, double *imageR, double *image
         }
     }
     
-     // /* Normalize the DFT */
-     // for (int ind = 0; ind<numel; ind++) {
-     //     outR[ind] = outR[ind]/dims_pow;
-     //     outI[ind] = outI[ind]/dims_pow;
-     // }
-    
+    /* Normalize */
+	if (l2_pres==0){
+		register double dims_inv = (double) 1/dims_pow;
+		for (int ind = 0; ind<numel; ind++) {
+			outR[ind] = outR[ind]*dims_inv;
+			outI[ind] = outI[ind]*dims_inv;
+		}
+	}
     /* Destory fftw_plans*/
     fftw_destroy_plan(fftw_plan_in_place);
     fftw_destroy_plan(ifftw_plan_in_place);
@@ -238,7 +240,7 @@ void nd_dwt_dec(double *outR, double *outI, double *imageR, double *imageI,
 
 /* =================================================================================================*/
 void nd_dwt_rec(double *outR, double *outI, double *imageR, double *imageI,
-                double *kernelR, double *kernelI, int num_dims,int *dims, int level){
+                double *kernelR, double *kernelI, int num_dims,int *dims, int level,int l2_pres){
     unsigned int level_start,numel, dims_pow;
     numel = 1;
 	fftw_plan fftw_plan_in_place;
@@ -251,7 +253,7 @@ void nd_dwt_rec(double *outR, double *outI, double *imageR, double *imageI,
 	fftw_plan_in_place = init_fftw_plan(outR, outI, outR, outI, dims, num_dims,1);
 	
     /* reconstruct lowest levels */
-    nd_dwt_rec_1level(outR, outI, imageR, imageI, kernelR, kernelI, num_dims,dims);
+    nd_dwt_rec_1level(outR, outI, imageR, imageI, kernelR, kernelI, num_dims,dims,l2_pres);
     
     /* Take the fft of the input image */
     fftw_execute_split_dft(fftw_plan_in_place, outR, outI, outR, outI); 
@@ -270,7 +272,7 @@ void nd_dwt_rec(double *outR, double *outI, double *imageR, double *imageI,
         level_start = ((1<<num_dims)-1)*(level_ind-1);
               
         /* reconstruct  next lowest levels */
-        nd_dwt_rec_1level(outR, outI, &imageR[level_start*numel], &imageI[level_start*numel], kernelR, kernelI, num_dims,dims);
+        nd_dwt_rec_1level(outR, outI, &imageR[level_start*numel], &imageI[level_start*numel], kernelR, kernelI, num_dims,dims,l2_pres);
     
 		if (level_ind != level){
 		    /* Take the fft of the input image */

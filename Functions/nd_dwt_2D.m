@@ -104,12 +104,12 @@ classdef nd_dwt_2D
                 x_real = 0;
             end
             
+            % Fourier Transform of Signal
+            x = fftn(x);
+			
             if obj.mex
 				y = nd_dwt_mex(x,obj.f_dec,0,level);
             else
-                % Fourier Transform of Signal
-                x = fftn(x);
-
                 % Preallocate
                 y = zeros([obj.sizes, 5+3*(level-2)]);
 
@@ -123,19 +123,18 @@ classdef nd_dwt_2D
                         y = cat(3,level_1_dec(obj,fftn(squeeze(y(:,:,1)))), y(:,:,2:end));
                     end
                 end
-
-                % Take the real part if the input was real
-                if x_real
-                    y = real(y);
-                end
-            end        
+            end
+            % Take the real part if the input was real
+            if x_real
+               y = real(y);
+            end      
         end
         
         % Multilevel Undecimated Wavelet Reconstruction
         function y = rec(obj,x)
             
             % Find the decomposition level
-            level = 1+(size(x,3)-4)/3;
+            level = 1+(size(x,3)-4)/3
             
             % Check if input is real
             if isreal(x)
@@ -145,7 +144,29 @@ classdef nd_dwt_2D
             end
             
             % Fourier Transform of Signal
-            x = fft2(x);
+            x = fftn(x);
+            
+            if obj.mex
+				y = nd_dwt_mex(x,obj.f_dec,1,level);
+            else
+				
+%                 % Reconstruct from Multiple Levels
+%                 for ind = 1:level
+%                     % First Level
+%                   if ind ==1
+%                        y = level_1_rec(obj,x);
+%                         if ~obj.pres_l2_norm
+%                             y = y/4;
+%                         end
+%                       % Succssive Levels
+%                   else
+%                       y = fftn(y);
+%                       y = level_1_rec(obj,cat(3,y,x(:,:,5+(ind-2)*3:7+(ind-2)*3)));
+%                       if ~obj.pres_l2_norm
+%                          y = y/4;
+%                       end
+%                   end
+%                 end
             
             % Reconstruct from Multiple Levels
             for ind = 1:level
@@ -163,8 +184,9 @@ classdef nd_dwt_2D
                         y = y/4;
                     end
                 end
-            end 
+            end
             
+            end
             % Take the real part if the input was real
             if x_real
                 y = real(y);

@@ -136,14 +136,15 @@ void mexFunction( int nlhs, mxArray *plhs[],
         outR = (double *) mxGetPr(plhs[0]);
         outI = (double *) mxGetPi(plhs[0]);
         
+		int l2_pres =0;
         /* Take the Inverse wavelet transform */
         if (level ==1) {
             nd_dwt_rec_1level(outR, outI, imageR, imageI, kernelR, kernelI,num_dims,
-                              dims_c);
+                              dims_c,l2_pres);
         }
         else {
             nd_dwt_rec(outR, outI, imageR, imageI, kernelR, kernelI,num_dims,
-                              dims_c,level);
+                              dims_c,level,l2_pres);
         }
         
         /* free dims_c*/
