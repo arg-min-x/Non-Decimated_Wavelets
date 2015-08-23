@@ -66,11 +66,11 @@ void pointByPoint(double *in1R, double *in1I,double *in2R,double *in2I,double *o
         if conj ==1, then the second input will be conjugate before multiplying */
     //    R[(a+ib)(c+id)]	=	ac-bd
     //    I[(a+ib)(c+id)]	=	(a+b)(c+d)-ac-bd. */
-    double ac,bd,a_b,c_d;
+    register double ac,bd,a_b,c_d;
     
     /* normal point by point */
     if (conj ==0) {
-       #pragma omp parallel for private(ac,bd,a_b,c_d)
+        #pragma omp parallel for private(ac,bd,a_b,c_d)
         for (int ind = 0; ind < size; ind++) {
             ac = in1R[ind]*in2R[ind];
             bd = in1I[ind]*in2I[ind];
