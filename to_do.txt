@@ -1,8 +1,7 @@
 Fixed the overwite issue for 1 level transfomrs
 
-1 Fix over write issue for multi-level transforms
-2 Fix 1/8 scaling for perserver_l2_norm = 0 option
-3 Update all four .m scripts
+2 set CPU number dynamically 
+3 Get wisdom wokring
 4 Compile on Windows
 5 Implement single precision version and test
-6 fix bug where 10+ levels errors
+7 fix bug where 10+ levels errors

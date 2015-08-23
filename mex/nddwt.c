@@ -70,7 +70,7 @@ void pointByPoint(double *in1R, double *in1I,double *in2R,double *in2I,double *o
     
     /* normal point by point */
     if (conj ==0) {
-//        #pragma omp parallel for private(ac,bd,a_b,c_d)
+       #pragma omp parallel for private(ac,bd,a_b,c_d)
         for (int ind = 0; ind < size; ind++) {
             ac = in1R[ind]*in2R[ind];
             bd = in1I[ind]*in2I[ind];
@@ -82,7 +82,7 @@ void pointByPoint(double *in1R, double *in1I,double *in2R,double *in2I,double *o
     }
     /* conjugate the secon inpute then point by point */
     else{
-//        #pragma omp parallel for private(ac,bd,a_b,c_d)
+       #pragma omp parallel for private(ac,bd,a_b,c_d)
         for (int ind = 0; ind < size; ind++) {
             ac = in1R[ind]*in2R[ind];
             bd = in1I[ind]*(-in2I[ind]);
