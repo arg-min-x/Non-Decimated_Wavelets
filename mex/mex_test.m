@@ -82,8 +82,8 @@ fprintf('\n');
 % 3D Test
 % =========================================================================
 x = randn(131,128,30) + 1j*randn(131,128,30);
-nddwt = nd_dwt_3D('db1',size(x),l2,0);
-nddwt_mex = nd_dwt_3D('db1',size(x),l2,1);
+nddwt = nd_dwt_3D('db1',size(x),l2,'mat');
+nddwt_mex = nd_dwt_3D('db1',size(x),l2,'mex');
 
 tic;
 for ind = 1:num_test;

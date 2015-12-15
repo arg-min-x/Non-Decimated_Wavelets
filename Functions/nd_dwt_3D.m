@@ -53,6 +53,7 @@ classdef nd_dwt_3D
         wname;          % Wavelet used
         pres_l2_norm;   % Binary indicator to preserver l2 norm of coefficients
         mex;
+        gpu;
     end
     
     %% Public Methods
@@ -81,21 +82,46 @@ classdef nd_dwt_3D
             if isempty(varargin)
                 obj.pres_l2_norm = 0;
                 obj.mex = 0;
+                obj.gpu = 0;
             elseif length(varargin)==1
                 obj.pres_l2_norm = varargin{1};
                 obj.mex = 0;
-            else
+                obj.gpu = 0;
+            elseif length(varargin)==2
                 obj.pres_l2_norm = varargin{1};
-                obj.mex = varargin{2};
+                if strcmpi(varargin{2},'mex')
+                    obj.mex = 1;
+                    obj.gpu = 0 ;
+                elseif strcmpi(varargin{2},'gpu')
+                    obj.mex = 0;
+                    obj.gpu = 1;
+                elseif strcmpi(varargin{2},'mat')
+                    obj.mex = 0;
+                    obj.gpu = 0;
+                else
+                    error('Fourth argument must be "mex", "mat", or "gpu"')
+                end
+            else
+                error('only two optional inputs are allowed');
             end
 
             % Get the Filter Coefficients
             [obj.f_dec,obj.f_size] = obj.get_filters(obj.wname);
             
+            % Put the filters on the GPU if applicable
+            if obj.gpu
+                obj.f_dec = gpuArray(obj.f_dec);
+            end
+            
         end
         
         % Multilevel Undecimated Wavelet Decomposition
         function y = dec(obj,x,level)
+            
+            % put the input array on the gpu
+            if obj.gpu
+                x = gpuArray(x);
+            end
             
             % Check if input is real
             if isreal(x)
@@ -127,12 +153,23 @@ classdef nd_dwt_3D
             % Take the real part if the input was real
             if x_real
                 y = real(y);
-            end  
+            end
+            
+            % put arrays back in cpu memory
+            if obj.gpu
+                y = gather(y);
+            end
+            
             end
         end
         
         % Multilevel Undecimated Wavelet Reconstruction
         function y = rec(obj,x)
+            
+            % put the input array on the gpu
+            if obj.gpu
+                x = gpuArray(x);
+            end
             
             % Check if input is real
             if isreal(x)
@@ -147,7 +184,7 @@ classdef nd_dwt_3D
             % Fourier Transform of Signal
             x = fft(fft(fft(x,[],1),[],2),[],3);
 			
-			% Use c mex version if chose
+			% Use c mex version if chosen
  	    	if obj.mex
 				% Take nd dwt
 		    	y = nd_dwt_mex(x,obj.f_dec,1,level,obj.pres_l2_norm);
@@ -175,6 +212,11 @@ classdef nd_dwt_3D
             % Take the real part if the input was real
             if x_real
                 y = real(y);
+            end
+            
+            % put arrays back in cpu memory
+            if obj.gpu
+                y = gather(y);
             end
         end
     end
@@ -267,7 +309,11 @@ classdef nd_dwt_3D
         % Single Level Redundant Wavelet Decomposition
         function y = level_1_dec(obj,x_f)
             % Preallocate
-            y = zeros([obj.sizes,8]);
+            if obj.gpu 
+                y = zeros([obj.sizes,8],'gpuArray');
+            else
+                y = zeros([obj.sizes,8]);
+            end
             
             % Calculate Wavelet Coefficents Using Fast Convolution
             y(:,:,:,1) = ifftn(x_f.*obj.f_dec(:,:,:,1));
