@@ -54,6 +54,7 @@ classdef nd_dwt_3D
         pres_l2_norm;   % Binary indicator to preserver l2 norm of coefficients
         mex;
         gpu;
+        precision;
     end
     
     %% Public Methods
@@ -79,31 +80,58 @@ classdef nd_dwt_3D
                 end
             end
             
-            if isempty(varargin)
-                obj.pres_l2_norm = 0;
-                obj.mex = 0;
-                obj.gpu = 0;
-            elseif length(varargin)==1
-                obj.pres_l2_norm = varargin{1};
-                obj.mex = 0;
-                obj.gpu = 0;
-            elseif length(varargin)==2
-                obj.pres_l2_norm = varargin{1};
-                if strcmpi(varargin{2},'mex')
-                    obj.mex = 1;
-                    obj.gpu = 0 ;
-                elseif strcmpi(varargin{2},'gpu')
-                    obj.mex = 0;
-                    obj.gpu = 1;
-                elseif strcmpi(varargin{2},'mat')
-                    obj.mex = 0;
-                    obj.gpu = 0;
-                else
-                    error('Fourth argument must be "mex", "mat", or "gpu"')
+            % Set Default Options
+            obj.pres_l2_norm = 0;
+            obj.precision = 'double';
+            obj.mex = 0;
+            obj.gpu = 0;
+            for ind = 1:2:length(varargin)
+
+                switch lower(varargin{ind})
+                    case 'pres_l2_norm'
+                        obj.pres_l2_norm = varargin{ind+1};
+                       display('here')
+                    case 'compute'
+                        if strcmpi(varargin{ind+1},'mex')
+                            obj.mex = 1;
+                            obj.gpu = 0 ;
+                        elseif strcmpi(varargin{ind+1},'gpu')
+                            obj.mex = 0;
+                            obj.gpu = 1;
+                        elseif strcmpi(varargin{ind+1},'mat')
+                            obj.mex = 0;
+                            obj.gpu = 0;
+                        end
+                        
+                    case 'precision'
+                        obj.precision = varargin{ind+1};
                 end
-            else
-                error('only two optional inputs are allowed');
             end
+%             if isempty(varargin)
+%                 obj.pres_l2_norm = 0;
+%                 obj.mex = 0;
+%                 obj.gpu = 0;
+%             elseif length(varargin)==1
+%                 obj.pres_l2_norm = varargin{1};
+%                 obj.mex = 0;
+%                 obj.gpu = 0;
+%             elseif length(varargin)==2
+%                 obj.pres_l2_norm = varargin{1};
+%                 if strcmpi(varargin{2},'mex')
+%                     obj.mex = 1;
+%                     obj.gpu = 0 ;
+%                 elseif strcmpi(varargin{2},'gpu')
+%                     obj.mex = 0;
+%                     obj.gpu = 1;
+%                 elseif strcmpi(varargin{2},'mat')
+%                     obj.mex = 0;
+%                     obj.gpu = 0;
+%                 else
+%                     error('Fourth argument must be "mex", "mat", or "gpu"')
+%                 end
+%             else
+%                 error('only two optional inputs are allowed');
+%             end
 
             % Get the Filter Coefficients
             [obj.f_dec,obj.f_size] = obj.get_filters(obj.wname);
