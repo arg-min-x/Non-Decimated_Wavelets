@@ -70,8 +70,8 @@ classdef nd_dwt_3D
         f_size;         % Length of the filters
         wname;          % Wavelet used
         pres_l2_norm;   % Binary indicator to preserver l2 norm of coefficients
-        compute;
-        precision;
+        compute;        % How to compute the wavelet transform
+        precision;      % which precision to use
     end
     
     %% Public Methods
