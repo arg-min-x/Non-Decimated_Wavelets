@@ -84,6 +84,9 @@ classdef nd_dwt_2D
             end
             
             % Check wname input
+            if mod(length(varargin),2)
+                error('Optional inputs must come in pairs')
+            end
             if ischar(wname)
                 obj.wname = {wname,wname};
             elseif iscell(wname)

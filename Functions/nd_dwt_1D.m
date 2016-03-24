@@ -96,6 +96,10 @@ classdef nd_dwt_1D
             obj.compute = 'mat';
             
             % Copy any optional inputs 
+            if mod(length(varargin),2)
+                error('Optional inputs must come in pairs')
+            end
+            
             for ind = 1:2:length(varargin)
                 switch lower(varargin{ind})
                     case 'pres_l2_norm'
