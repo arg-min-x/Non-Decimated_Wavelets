@@ -14,9 +14,27 @@
 %
 %                       sizes - size of the 2D object [n1,n2]
 %
-%                       preserve_l2_norm - An optional third input.  If set
-%                        TRUE, the l2 norm in the wavelet domain will be
-%                        equal to the l2 norm in the signal domain
+%               Optional Inputs:
+%                        pres_l2_norm -If set TRUE, the l2 norm in the 
+%                        wavelet domain will be equal to the l2 norm in the
+%                        signal domain.  Default is FALSE
+% 
+%                        compute - A string that sets the method of
+%                        computation.  'mat' computes the wavelet tranform
+%                        in Matlab.  'mex' computes the wavelet transfrom
+%                        using a c mex file.  'gpu' computes the wavelets
+%                        using matlab on a the GPU. When using 'gpu' the 
+%                        input is expected to be a gpuArray and the output 
+%                        also a gpuArray.  'gpu_off' computes the wavelets 
+%                        using the gpu in matlab.  The calculation is offloaded
+%                        to the GPU for calculation and brought back to 
+%                        system memory afterwords. The input and output in 
+%                        this case are both 'double' or 'single' depending
+%                        on the precision used (see below)
+%
+%                        precision - a string that specifies double or
+%                        single precision computation.  'double' or
+%                        'single' are valid inputs
 %
 %   dec:        Multilevel Decomposition
 %               Inputs: x - Image domain signal for decomposition
