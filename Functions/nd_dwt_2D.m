@@ -50,7 +50,8 @@ classdef nd_dwt_2D
         f_size;         % Length of the filters
         wname;          % Wavelet used
         pres_l2_norm;   % Binary indicator to preserver l2 norm of coefficients
-        mex;
+        compute;        % How to compute the wavelet transform
+        precision;      % which precision to use
     end
     
     %% Public Methods
@@ -77,24 +78,51 @@ classdef nd_dwt_2D
                 end
             end
             
-            if isempty(varargin)
-                obj.pres_l2_norm = 0;
-                obj.mex = 0;
-            elseif length(varargin)==1
-                obj.pres_l2_norm = varargin{1};
-                obj.mex = 0;
-            else
-                obj.pres_l2_norm = varargin{1};
-                obj.mex = varargin{2};
+            % Set Default Options
+            obj.pres_l2_norm = 0;
+            obj.precision = 'double';
+            obj.compute = 'mat';
+            
+            % Copy any optional inputs 
+            for ind = 1:2:length(varargin)
+                switch lower(varargin{ind})
+                    case 'pres_l2_norm'
+                        obj.pres_l2_norm = varargin{ind+1};
+                    case 'compute'
+                        obj.compute = varargin{ind+1};
+                    case 'precision'
+                        obj.precision = varargin{ind+1};
+                    otherwise
+                        warning(sprintf('Unknown optional input #%d ingoring!',ind))
+                end
             end
+            
+            if strcmpi(obj.compute,'mex') && strcmpi(obj.precision,'single')
+                error('Single precsision is not currently supported for mex computation');
+            end 
             
             % Get the Filter Coefficients
             [obj.f_dec,obj.f_size] = obj.get_filters(obj.wname);
+            
+            % Typecast the filters as single for single precision
+            if strcmpi(obj.precision,'single')
+                obj.f_dec = single(obj.f_dec);
+            end
+            
+            % Put the filters on the GPU if using GPU computing
+            if strcmpi(obj.compute,'gpu')
+                obj.f_dec = gpuArray(obj.f_dec);
+            end
             
         end
         
         % Multilevel Undecimated Wavelet Decomposition
         function y = dec(obj,x,level)
+            
+            % put the input array on the gpu
+            if strcmpi(obj.compute,'gpu_off')
+                x = gpuArray(x);
+            end
             
             % Check if input is real
             if isreal(x)
@@ -106,12 +134,23 @@ classdef nd_dwt_2D
             % Fourier Transform of Signal
             x = fft2(x);
             
-            if obj.mex
+            % Use Mex computation
+            if strcmpi(obj.compute,'mex')
                 y = nd_dwt_mex(x,obj.f_dec,0,level,obj.pres_l2_norm);
-            else
                 
+            % Use Matlab  
+            else
                 % Preallocate
-                y = zeros([obj.sizes, 5+3*(level-2)]);
+                if ( strcmpi(obj.compute,'gpu_off') || strcmpi(obj.compute,'gpu') ) && strcmpi(obj.precision,'single')
+                    y = zeros([obj.sizes, 4+3*(level-1)],'single');
+                    y = gpuArray(y);
+                elseif ( strcmpi(obj.compute,'gpu_off') || strcmpi(obj.compute,'gpu') ) && ~strcmpi(obj.precision,'single')
+                    y = zeros([obj.sizes, 4+3*(level-1)],'gpuArray');
+                elseif strcmpi(obj.precision,'single')
+                    y = zeros([obj.sizes, 4+3*(level-1)],'single');
+                else
+                    y = zeros([obj.sizes, 4+3*(level-1)]);
+                end
 
                 % Calculate Mutlilevel Wavelet decomposition
                 for ind = 1:level
@@ -128,15 +167,22 @@ classdef nd_dwt_2D
             % Take the real part if the input was real
             if x_real
                 y = real(y);
-            end        
+            end
+            
+            % put arrays back in cpu memory
+            if strcmpi(obj.compute,'gpu_off')
+                y = gather(y);
+            end
         end
         
         % Multilevel Undecimated Wavelet Reconstruction
         function y = rec(obj,x)
             
-            % Find the decomposition level
-            level = 1+(size(x,3)-4)/3;
-            
+            % put the input array on the gpu
+            if strcmpi(obj.compute,'gpu_off')
+                x = gpuArray(x);
+            end
+
             % Check if input is real
             if isreal(x)
                 x_real = 1;
@@ -144,10 +190,14 @@ classdef nd_dwt_2D
                 x_real = 0;
             end
             
+            % Find the decomposition level
+            level = 1+(size(x,3)-4)/3;
+            
             % Fourier Transform of Signal
             x = fft2(x);
             
-            if obj.mex
+            % Use c mex version if chosen
+            if strcmpi(obj.compute,'mex')
                 y = nd_dwt_mex(x,obj.f_dec,1,level,obj.pres_l2_norm);
             else
                 
@@ -169,9 +219,14 @@ classdef nd_dwt_2D
                     end
                 end 
             end
+            
             % Take the real part if the input was real
             if x_real
                 y = real(y);
+            end
+            % put arrays back in cpu memory
+            if strcmpi(obj.compute,'gpu_off')
+                y = gather(y);
             end
         end
     end
@@ -221,7 +276,7 @@ classdef nd_dwt_2D
             else
                 scale = 1;
             end
-            if obj.mex
+            if strcmpi(obj.compute,'mex')
                 scale2 = 1/prod(obj.sizes);
             else
                 scale2 = 1;
@@ -235,7 +290,16 @@ classdef nd_dwt_2D
         % Single Level Redundant Wavelet Decomposition
         function y = level_1_dec(obj,x_f)
             % Preallocate
-            y = zeros([obj.sizes,4]);
+            if ( strcmpi(obj.compute,'gpu_off') || strcmpi(obj.compute,'gpu') ) && strcmpi(obj.precision,'single')
+                y = zeros([obj.sizes,4],'single');
+                y = gpuArray(y);
+            elseif ( strcmpi(obj.compute,'gpu_off') || strcmpi(obj.compute,'gpu') ) && ~strcmpi(obj.precision,'single')
+                y = zeros([obj.sizes,4],'gpuArray');
+            elseif strcmpi(obj.precision,'single')
+                y = zeros([obj.sizes,4],'single');
+            else
+                y = zeros([obj.sizes,4]);
+            end
             
             % Calculate Wavelet Coefficents Using Fast Convolution
             y(:,:,1) = ifftn(x_f.*obj.f_dec(:,:,1));

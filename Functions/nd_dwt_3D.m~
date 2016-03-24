@@ -192,6 +192,7 @@ classdef nd_dwt_3D
             if strcmpi(obj.compute,'gpu_off')
                 y = gather(y);
             end
+            
 
         end
         
