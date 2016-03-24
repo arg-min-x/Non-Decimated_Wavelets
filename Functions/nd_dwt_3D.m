@@ -13,9 +13,27 @@
 %
 %                       sizes - size of the 3D object [n1,n2,n3]
 %
-%                       preserve_l2_norm - An optional third input.  If set
-%                        TRUE, the l2 norm in the wavelet domain will be
-%                        equal to the l2 norm in the signal domain
+%               Optional Inputs:
+%                        pres_l2_norm -If set TRUE, the l2 norm in the 
+%                        wavelet domain will be equal to the l2 norm in the
+%                        signal domain.  Default is FALSE
+% 
+%                        compute - A string that sets the method of
+%                        computation.  'mat' computes the wavelet tranform
+%                        in Matlab.  'mex' computes the wavelet transfrom
+%                        using a c mex file.  'gpu' computes the wavelets
+%                        using matlab on a the GPU. When using 'gpu' the 
+%                        input is expected to be a gpuArray and the output 
+%                        also a gpuArray.  'gpu_off' computes the wavelets 
+%                        using the gpu in matlab.  The calculation is offloaded
+%                        to the GPU for calculation and brought back to 
+%                        system memory afterwords. The input and output in 
+%                        this case are both 'double' or 'single' depending
+%                        on the precision used (see below)
+%
+%                        precision - a string that specifies double or
+%                        single precision computation.  'double' or
+%                        'single' are valid inputs
 %
 %   dec:        Multilevel Decomposition
 %               Inputs: x - Image domain signal for decomposition
@@ -52,8 +70,7 @@ classdef nd_dwt_3D
         f_size;         % Length of the filters
         wname;          % Wavelet used
         pres_l2_norm;   % Binary indicator to preserver l2 norm of coefficients
-        mex;
-        gpu;
+        compute;
         precision;
     end
     
@@ -67,7 +84,7 @@ classdef nd_dwt_3D
             else
                 obj.sizes = sizes;
             end
-            
+
             if ischar(wname)
                 obj.wname = {wname,wname,wname};
             elseif iscell(wname)
@@ -83,61 +100,36 @@ classdef nd_dwt_3D
             % Set Default Options
             obj.pres_l2_norm = 0;
             obj.precision = 'double';
-            obj.mex = 0;
-            obj.gpu = 0;
+            obj.compute = 'mat';
+            
+            % Copy any optional inputs 
             for ind = 1:2:length(varargin)
-
                 switch lower(varargin{ind})
                     case 'pres_l2_norm'
                         obj.pres_l2_norm = varargin{ind+1};
-                       display('here')
                     case 'compute'
-                        if strcmpi(varargin{ind+1},'mex')
-                            obj.mex = 1;
-                            obj.gpu = 0 ;
-                        elseif strcmpi(varargin{ind+1},'gpu')
-                            obj.mex = 0;
-                            obj.gpu = 1;
-                        elseif strcmpi(varargin{ind+1},'mat')
-                            obj.mex = 0;
-                            obj.gpu = 0;
-                        end
-                        
+                        obj.compute = varargin{ind+1};
                     case 'precision'
                         obj.precision = varargin{ind+1};
+                    otherwise
+                        warning(sprintf('Unknown optional input #%d ingoring!',ind))
                 end
             end
-%             if isempty(varargin)
-%                 obj.pres_l2_norm = 0;
-%                 obj.mex = 0;
-%                 obj.gpu = 0;
-%             elseif length(varargin)==1
-%                 obj.pres_l2_norm = varargin{1};
-%                 obj.mex = 0;
-%                 obj.gpu = 0;
-%             elseif length(varargin)==2
-%                 obj.pres_l2_norm = varargin{1};
-%                 if strcmpi(varargin{2},'mex')
-%                     obj.mex = 1;
-%                     obj.gpu = 0 ;
-%                 elseif strcmpi(varargin{2},'gpu')
-%                     obj.mex = 0;
-%                     obj.gpu = 1;
-%                 elseif strcmpi(varargin{2},'mat')
-%                     obj.mex = 0;
-%                     obj.gpu = 0;
-%                 else
-%                     error('Fourth argument must be "mex", "mat", or "gpu"')
-%                 end
-%             else
-%                 error('only two optional inputs are allowed');
-%             end
-
+            
+            if strcmpi(obj.compute,'mex') && strcmpi(obj.precision,'single')
+                error('Single precsision is not currently supported for mex computation');
+            end 
+            
             % Get the Filter Coefficients
             [obj.f_dec,obj.f_size] = obj.get_filters(obj.wname);
             
-            % Put the filters on the GPU if applicable
-            if obj.gpu
+            % Typecast the filters as single for single precision
+            if strcmpi(obj.precision,'single')
+                obj.f_dec = single(obj.f_dec);
+            end
+            
+            % Put the filters on the GPU if using GPU computing
+            if strcmpi(obj.compute,'gpu')
                 obj.f_dec = gpuArray(obj.f_dec);
             end
             
@@ -147,7 +139,7 @@ classdef nd_dwt_3D
         function y = dec(obj,x,level)
             
             % put the input array on the gpu
-            if obj.gpu
+            if strcmpi(obj.compute,'gpu_off')
                 x = gpuArray(x);
             end
             
@@ -160,23 +152,35 @@ classdef nd_dwt_3D
 			
             % Fourier Transform of Signal
             x = fftn(x);
-            if obj.mex
-                y = nd_dwt_mex(x,obj.f_dec,0,level,obj.pres_l2_norm);
-            else
-
-            % Preallocate
-            y = zeros([obj.sizes, 8+7*(level-1)]);
             
-            % Calculate Mutlilevel Wavelet decomposition
-            for ind = 1:level
-                % First Level
-                if ind ==1
-                    y = level_1_dec(obj,x);
-                % Succssive Levels
+            % Use Mex computation
+            if strcmpi(obj.compute,'mex')
+                y = nd_dwt_mex(x,obj.f_dec,0,level,obj.pres_l2_norm);
+            
+            % Use Matlab    
+            else
+                % Preallocate
+                if ( strcmpi(obj.compute,'gpu_off') || strcmpi(obj.compute,'gpu') ) && strcmpi(obj.precision,'single')
+                    y = zeros([obj.sizes, 8+7*(level-1)],'single');
+                    y = gpuArray(y);
+                elseif ( strcmpi(obj.compute,'gpu_off') || strcmpi(obj.compute,'gpu') ) && ~strcmpi(obj.precision,'single')
+                    y = zeros([obj.sizes, 8+7*(level-1)],'gpuArray');
+                elseif strcmpi(obj.precision,'single')
+                    y = zeros([obj.sizes, 8+7*(level-1)],'single');
                 else
-                    y = cat(4,level_1_dec(obj,fftn(squeeze(y(:,:,:,1)))), y(:,:,:,2:end));
+                    y = zeros([obj.sizes, 8+7*(level-1)]);
                 end
-            end
+
+                % Calculate Mutlilevel Wavelet decomposition
+                for ind = 1:level
+                    % First Level
+                    if ind ==1
+                        y = level_1_dec(obj,x);
+                    % Succssive Levels
+                    else
+                        y = cat(4,level_1_dec(obj,fftn(squeeze(y(:,:,:,1)))), y(:,:,:,2:end));
+                    end
+                end
             
             % Take the real part if the input was real
             if x_real
@@ -184,7 +188,7 @@ classdef nd_dwt_3D
             end
             
             % put arrays back in cpu memory
-            if obj.gpu
+            if strcmpi(obj.compute,'gpu_off')
                 y = gather(y);
             end
             
@@ -195,7 +199,7 @@ classdef nd_dwt_3D
         function y = rec(obj,x)
             
             % put the input array on the gpu
-            if obj.gpu
+            if strcmpi(obj.compute,'gpu_off')
                 x = gpuArray(x);
             end
             
@@ -213,7 +217,7 @@ classdef nd_dwt_3D
             x = fft(fft(fft(x,[],1),[],2),[],3);
 			
 			% Use c mex version if chosen
- 	    	if obj.mex
+ 	    	if strcmpi(obj.compute,'mex')
 				% Take nd dwt
 		    	y = nd_dwt_mex(x,obj.f_dec,1,level,obj.pres_l2_norm);
 	    	else 
@@ -243,7 +247,7 @@ classdef nd_dwt_3D
             end
             
             % put arrays back in cpu memory
-            if obj.gpu
+            if strcmpi(obj.compute,'gpu_off')
                 y = gather(y);
             end
         end
@@ -318,7 +322,7 @@ classdef nd_dwt_3D
             else
                 scale = 1;
             end
-            if obj.mex
+            if strcmpi(obj.compute,'mex')
                 scale2 = 1/prod(obj.sizes);
             else
                 scale2 = 1;
@@ -337,8 +341,13 @@ classdef nd_dwt_3D
         % Single Level Redundant Wavelet Decomposition
         function y = level_1_dec(obj,x_f)
             % Preallocate
-            if obj.gpu 
+            if ( strcmpi(obj.compute,'gpu_off') || strcmpi(obj.compute,'gpu') ) && strcmpi(obj.precision,'single')
+                y = zeros([obj.sizes,8],'single');
+                y = gpuArray(y);
+            elseif ( strcmpi(obj.compute,'gpu_off') || strcmpi(obj.compute,'gpu') ) && ~strcmpi(obj.precision,'single')
                 y = zeros([obj.sizes,8],'gpuArray');
+            elseif strcmpi(obj.precision,'single')
+                y = zeros([obj.sizes,8],'single');
             else
                 y = zeros([obj.sizes,8]);
             end
