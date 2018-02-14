@@ -11,7 +11,7 @@ perserve_l2_norm = true;        % Choose wether to preserve the l2 norm or not (
 x = randn(sizes) + 1j*randn(sizes);
 
 % Initialize the nd_dwt_3D class
-nddwt = nd_dwt_3D(wnames,size(x),perserve_l2_norm);
+nddwt = nd_dwt_3D(wnames,size(x),'pres_l2_norm',perserve_l2_norm);
 
 % Perform a multilevel wavelet decomposition
 x_trans = nddwt.dec(x,level);
