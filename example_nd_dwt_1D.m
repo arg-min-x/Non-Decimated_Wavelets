@@ -11,7 +11,7 @@ perserve_l2_norm = true; % Choose wether to preserve the l2 norm or not (optiona
 x = noisbloc.*(ones(size(noisbloc)) + 1j*ones(size(noisbloc)));
 
 % Initialize the nd_dwt_1D class
-nddwt = nd_dwt_1D(wname,length(x),perserve_l2_norm);
+nddwt = nd_dwt_1D(wname,length(x),'perserve_l2_norm',perserve_l2_norm);
 
 % Perform a multilevel wavelet decomposition
 x_trans = nddwt.dec(x,level);
