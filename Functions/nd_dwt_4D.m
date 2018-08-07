@@ -71,6 +71,7 @@ classdef nd_dwt_4D
         pres_l2_norm;   % Binary indicator to preserver l2 norm of coefficients
         compute;        % How to compute the wavelet transform
         precision;      % which precision to use
+        method;         % Convolution or fft based 
     end
     
     methods
@@ -93,6 +94,7 @@ classdef nd_dwt_4D
             obj.pres_l2_norm = 0;
             obj.precision = 'double';
             obj.compute = 'mat';
+            obj.method = 'fft';
             
             % Copy any optional inputs
             if mod(length(varargin),2)
@@ -106,6 +108,8 @@ classdef nd_dwt_4D
                         obj.compute = varargin{ind+1};
                     case 'precision'
                         obj.precision = varargin{ind+1};
+                    case 'method'
+                        obj.method = varargin{ind+1};
                     otherwise
                         warning(sprintf('Unknown optional input #%d ingoring!',ind))
                 end
@@ -145,7 +149,9 @@ classdef nd_dwt_4D
             end
             
             % Fourier Transform of Signal
-            x = fftn(x);
+            if strcmpi('fft',obj.method)
+                x = fftn(x);
+            end
             
 			% Use Mex computation
             if strcmpi(obj.compute,'mex')
@@ -322,33 +328,7 @@ classdef nd_dwt_4D
                     f_dec1(:,ii,kk,:,16) = dec_HHH(:,ii,kk)*HI_D4;
                 end
             end
-
-            % Add a circularshift of half the filter length to the 
-            % reconstruction filters by adding phase to them
-            phase1 = exp(1j*2*pi*f_size.s1/2*linspace(0,1-1/obj.sizes(1),obj.sizes(1)));
-            phase2 = exp(1j*2*pi*f_size.s2/2*linspace(0,1-1/obj.sizes(2),obj.sizes(2)));
-            phase3 = exp(1j*2*pi*f_size.s3/2*linspace(0,1-1/obj.sizes(3),obj.sizes(3)));
-            phase4 = exp(1j*2*pi*f_size.s4/2*linspace(0,1-1/obj.sizes(4),obj.sizes(4)));
-
-            % 2D Phase
-            shift_2 = phase1.'*phase2;
             
-            % 3D Phase
-            shift_3 = zeros([obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
-            for ind = 1:size(shift_2,2)
-               shift_3(:,ind,:) = shift_2(:,ind)*phase3; 
-            end
-            
-            % 4D Phase
-            shift = zeros([obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            for ii = 1:size(shift_3,2)
-                for kk = 1:size(shift_3,3)
-                    shift(:,ii,kk,:) = shift_3(:,ii,kk)*phase4;
-                end
-            end
-            
-            % Take the Fourier Transform of the Kernels for Fast
-            % Convolution
             if obj.pres_l2_norm 
                 scale = 1/sqrt(16);
             else
@@ -359,22 +339,55 @@ classdef nd_dwt_4D
             else
                 scale2 = 1;
             end
-            f_dec(:,:,:,:,1) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,1),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec(:,:,:,:,2) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,2),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec(:,:,:,:,3) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,3),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec(:,:,:,:,4) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,4),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec(:,:,:,:,5) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,5),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec(:,:,:,:,6) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,6),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec(:,:,:,:,7) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,7),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec(:,:,:,:,8) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,8),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec(:,:,:,:,9) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,9),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec(:,:,:,:,10) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,10),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec(:,:,:,:,11) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,11),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec(:,:,:,:,12) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,12),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec(:,:,:,:,13) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,13),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec(:,:,:,:,14) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,14),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec(:,:,:,:,15) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,15),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
-            f_dec(:,:,:,:,16) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,16),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            
+            if strcmpi('fft',obj.method)
+                % Add a circularshift of half the filter length to the 
+                % reconstruction filters by adding phase to them
+                phase1 = exp(1j*2*pi*f_size.s1/2*linspace(0,1-1/obj.sizes(1),obj.sizes(1)));
+                phase2 = exp(1j*2*pi*f_size.s2/2*linspace(0,1-1/obj.sizes(2),obj.sizes(2)));
+                phase3 = exp(1j*2*pi*f_size.s3/2*linspace(0,1-1/obj.sizes(3),obj.sizes(3)));
+                phase4 = exp(1j*2*pi*f_size.s4/2*linspace(0,1-1/obj.sizes(4),obj.sizes(4)));
+
+                % 2D Phase
+                shift_2 = phase1.'*phase2;
+
+                % 3D Phase
+                shift_3 = zeros([obj.sizes(1),obj.sizes(2),obj.sizes(3)]);
+                for ind = 1:size(shift_2,2)
+                   shift_3(:,ind,:) = shift_2(:,ind)*phase3; 
+                end
+
+                % 4D Phase
+                shift = zeros([obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+                for ii = 1:size(shift_3,2)
+                    for kk = 1:size(shift_3,3)
+                        shift(:,ii,kk,:) = shift_3(:,ii,kk)*phase4;
+                    end
+                end
+
+                % Take the Fourier Transform of the Kernels for Fast
+                % Convolution
+                f_dec(:,:,:,:,1) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,1),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+                f_dec(:,:,:,:,2) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,2),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+                f_dec(:,:,:,:,3) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,3),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+                f_dec(:,:,:,:,4) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,4),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+                f_dec(:,:,:,:,5) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,5),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+                f_dec(:,:,:,:,6) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,6),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+                f_dec(:,:,:,:,7) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,7),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+                f_dec(:,:,:,:,8) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,8),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+                f_dec(:,:,:,:,9) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,9),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+                f_dec(:,:,:,:,10) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,10),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+                f_dec(:,:,:,:,11) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,11),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+                f_dec(:,:,:,:,12) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,12),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+                f_dec(:,:,:,:,13) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,13),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+                f_dec(:,:,:,:,14) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,14),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+                f_dec(:,:,:,:,15) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,15),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+                f_dec(:,:,:,:,16) = scale2*scale*shift.*fftn(f_dec1(:,:,:,:,16),[obj.sizes(1),obj.sizes(2),obj.sizes(3),obj.sizes(4)]);
+            elseif strcmpi('conv',obj.method)
+                f_dec = scale2*scale*f_dec1;
+            else
+                error('unknown Method');
+            end
         end
         
         % Single Level Redundant Wavelet Decomposition
@@ -391,24 +404,43 @@ classdef nd_dwt_4D
                 y = zeros([obj.sizes,16]);
             end
             
-            % Calculate Wavelet Coefficents Using Fast Convolution
-            y(:,:,:,:,1) =  ifftn(x_f.*obj.f_dec(:,:,:,:,1));
-            y(:,:,:,:,2) =  ifftn(x_f.*obj.f_dec(:,:,:,:,2));
-            y(:,:,:,:,3) =  ifftn(x_f.*obj.f_dec(:,:,:,:,3));
-            y(:,:,:,:,4) =  ifftn(x_f.*obj.f_dec(:,:,:,:,4));
-            y(:,:,:,:,5) =  ifftn(x_f.*obj.f_dec(:,:,:,:,5));
-            y(:,:,:,:,6) =  ifftn(x_f.*obj.f_dec(:,:,:,:,6));
-            y(:,:,:,:,7) =  ifftn(x_f.*obj.f_dec(:,:,:,:,7));
-            y(:,:,:,:,8) =  ifftn(x_f.*obj.f_dec(:,:,:,:,8));
-            y(:,:,:,:,9) =  ifftn(x_f.*obj.f_dec(:,:,:,:,9));
-            y(:,:,:,:,10) = ifftn(x_f.*obj.f_dec(:,:,:,:,10));
-            y(:,:,:,:,11) = ifftn(x_f.*obj.f_dec(:,:,:,:,11));
-            y(:,:,:,:,12) = ifftn(x_f.*obj.f_dec(:,:,:,:,12));
-            y(:,:,:,:,13) = ifftn(x_f.*obj.f_dec(:,:,:,:,13));
-            y(:,:,:,:,14) = ifftn(x_f.*obj.f_dec(:,:,:,:,14));
-            y(:,:,:,:,15) = ifftn(x_f.*obj.f_dec(:,:,:,:,15));
-            y(:,:,:,:,16) = ifftn(x_f.*obj.f_dec(:,:,:,:,16));
-            
+            if strcmpi('fft',obj.method)
+                % Calculate Wavelet Coefficents Using Fast Convolution
+                y(:,:,:,:,1) =  ifftn(x_f.*obj.f_dec(:,:,:,:,1));
+                y(:,:,:,:,2) =  ifftn(x_f.*obj.f_dec(:,:,:,:,2));
+                y(:,:,:,:,3) =  ifftn(x_f.*obj.f_dec(:,:,:,:,3));
+                y(:,:,:,:,4) =  ifftn(x_f.*obj.f_dec(:,:,:,:,4));
+                y(:,:,:,:,5) =  ifftn(x_f.*obj.f_dec(:,:,:,:,5));
+                y(:,:,:,:,6) =  ifftn(x_f.*obj.f_dec(:,:,:,:,6));
+                y(:,:,:,:,7) =  ifftn(x_f.*obj.f_dec(:,:,:,:,7));
+                y(:,:,:,:,8) =  ifftn(x_f.*obj.f_dec(:,:,:,:,8));
+                y(:,:,:,:,9) =  ifftn(x_f.*obj.f_dec(:,:,:,:,9));
+                y(:,:,:,:,10) = ifftn(x_f.*obj.f_dec(:,:,:,:,10));
+                y(:,:,:,:,11) = ifftn(x_f.*obj.f_dec(:,:,:,:,11));
+                y(:,:,:,:,12) = ifftn(x_f.*obj.f_dec(:,:,:,:,12));
+                y(:,:,:,:,13) = ifftn(x_f.*obj.f_dec(:,:,:,:,13));
+                y(:,:,:,:,14) = ifftn(x_f.*obj.f_dec(:,:,:,:,14));
+                y(:,:,:,:,15) = ifftn(x_f.*obj.f_dec(:,:,:,:,15));
+                y(:,:,:,:,16) = ifftn(x_f.*obj.f_dec(:,:,:,:,16));
+            elseif strcmpi('conv',obj.method)
+                % Calculate Wavelet Coefficents Using Fast Convolution
+                y(:,:,:,:,1) =  cconv(x_f,obj.f_dec(:,:,:,:,1));
+                y(:,:,:,:,2) =  cconv(x_f,obj.f_dec(:,:,:,:,2));
+                y(:,:,:,:,3) =  cconv(x_f,obj.f_dec(:,:,:,:,3));
+                y(:,:,:,:,4) =  cconv(x_f,obj.f_dec(:,:,:,:,4));
+                y(:,:,:,:,5) =  cconv(x_f,obj.f_dec(:,:,:,:,5));
+                y(:,:,:,:,6) =  cconv(x_f,obj.f_dec(:,:,:,:,6));
+                y(:,:,:,:,7) =  cconv(x_f,obj.f_dec(:,:,:,:,7));
+                y(:,:,:,:,8) =  cconv(x_f,obj.f_dec(:,:,:,:,8));
+                y(:,:,:,:,9) =  cconv(x_f,obj.f_dec(:,:,:,:,9));
+                y(:,:,:,:,10) = cconv(x_f,obj.f_dec(:,:,:,:,10));
+                y(:,:,:,:,11) = cconv(x_f,obj.f_dec(:,:,:,:,11));
+                y(:,:,:,:,12) = cconv(x_f,obj.f_dec(:,:,:,:,12));
+                y(:,:,:,:,13) = cconv(x_f,obj.f_dec(:,:,:,:,13));
+                y(:,:,:,:,14) = cconv(x_f,obj.f_dec(:,:,:,:,14));
+                y(:,:,:,:,15) = cconv(x_f,obj.f_dec(:,:,:,:,15));
+                y(:,:,:,:,16) = cconv(x_f,obj.f_dec(:,:,:,:,16));
+            end
         end
         
         % Single Level Redundant Wavelet Reconstruction

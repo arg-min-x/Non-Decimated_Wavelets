@@ -313,8 +313,7 @@ classdef nd_dwt_1D
         function y = level_1_rec(obj,x_f)
             
             % Reconstruct the 3D array using Fast Convolution
-            y = ifft(squeeze(x_f(:,1)).*conj(obj.f_dec(:,1)));
-            y = y + ifft(squeeze(x_f(:,2)).*conj(obj.f_dec(:,2)));
+            y = ifft(squeeze(x_f(:,1)).*conj(obj.f_dec(:,1)) + squeeze(x_f(:,2)).*conj(obj.f_dec(:,2)));
             
         end
     end

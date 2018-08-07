@@ -333,10 +333,7 @@ classdef nd_dwt_2D
         % Single Level Redundant Wavelet Reconstruction
         function y = level_1_rec(obj,x_f)
             % Reconstruct the 3D array using Fast Convolution
-            y = ifftn(squeeze(x_f(:,:,1)).*conj(obj.f_dec(:,:,1)));
-            y = y + ifftn(squeeze(x_f(:,:,2)).*conj(obj.f_dec(:,:,2)));
-            y = y + ifftn(squeeze(x_f(:,:,3)).*conj(obj.f_dec(:,:,3)));
-            y = y + ifftn(squeeze(x_f(:,:,4)).*conj(obj.f_dec(:,:,4)));
+            y = ifftn( sum(x_f(:,:,1:4).*conj(obj.f_dec),3) );
         end
     end
 end

@@ -371,14 +371,24 @@ classdef nd_dwt_3D
         function y = level_1_rec(obj,x_f)
             
             % Reconstruct the 3D array using Fast Convolution
-            y = ifftn(squeeze(x_f(:,:,:,1)).*conj(obj.f_dec(:,:,:,1)));
-            y = y + ifftn(squeeze(x_f(:,:,:,2)).*conj(obj.f_dec(:,:,:,2)));
-            y = y + ifftn(squeeze(x_f(:,:,:,3)).*conj(obj.f_dec(:,:,:,3)));
-            y = y + ifftn(squeeze(x_f(:,:,:,4)).*conj(obj.f_dec(:,:,:,4)));
-            y = y + ifftn(squeeze(x_f(:,:,:,5)).*conj(obj.f_dec(:,:,:,5)));
-            y = y + ifftn(squeeze(x_f(:,:,:,6)).*conj(obj.f_dec(:,:,:,6)));
-            y = y + ifftn(squeeze(x_f(:,:,:,7)).*conj(obj.f_dec(:,:,:,7)));
-            y = y + ifftn(squeeze(x_f(:,:,:,8)).*conj(obj.f_dec(:,:,:,8)));
+            y = ifftn( sum(x_f(:,:,:,1:8).*conj(obj.f_dec),4) );
+%             y = squeeze(x_f(:,:,:,1)).*conj(obj.f_dec(:,:,:,1)) + ...
+%                 squeeze(x_f(:,:,:,2)).*conj(obj.f_dec(:,:,:,2)) + ...
+%                 squeeze(x_f(:,:,:,3)).*conj(obj.f_dec(:,:,:,3)) + ...
+%                 squeeze(x_f(:,:,:,4)).*conj(obj.f_dec(:,:,:,4)) + ...
+%                 squeeze(x_f(:,:,:,5)).*conj(obj.f_dec(:,:,:,5)) + ...
+%                 squeeze(x_f(:,:,:,6)).*conj(obj.f_dec(:,:,:,6)) + ...
+%                 squeeze(x_f(:,:,:,7)).*conj(obj.f_dec(:,:,:,7)) + ...
+%                 squeeze(x_f(:,:,:,8)).*conj(obj.f_dec(:,:,:,8));
+%             y = ifftn(y);
+%             y = ifftn(squeeze(x_f(:,:,:,1)).*conj(obj.f_dec(:,:,:,1)));
+%             y = y + ifftn(squeeze(x_f(:,:,:,2)).*conj(obj.f_dec(:,:,:,2)));
+%             y = y + ifftn(squeeze(x_f(:,:,:,3)).*conj(obj.f_dec(:,:,:,3)));
+%             y = y + ifftn(squeeze(x_f(:,:,:,4)).*conj(obj.f_dec(:,:,:,4)));
+%             y = y + ifftn(squeeze(x_f(:,:,:,5)).*conj(obj.f_dec(:,:,:,5)));
+%             y = y + ifftn(squeeze(x_f(:,:,:,6)).*conj(obj.f_dec(:,:,:,6)));
+%             y = y + ifftn(squeeze(x_f(:,:,:,7)).*conj(obj.f_dec(:,:,:,7)));
+%             y = y + ifftn(squeeze(x_f(:,:,:,8)).*conj(obj.f_dec(:,:,:,8)));
 
         end
     end
